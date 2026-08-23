@@ -4,6 +4,11 @@ All notable changes to HiLight Studio are documented here.
 
 ## [Unreleased]
 
+## [1.0.7-experimental] - 2026-08-23
+
+- Enabled reproducible, developer-signed builds for the initial F-Droid submission. This release
+  contains no app behavior changes from 1.0.6.
+
 ## [1.0.6-experimental] - 2026-08-23
 
 - Added a manual **Check for updates** action under Setup. It includes experimental GitHub
