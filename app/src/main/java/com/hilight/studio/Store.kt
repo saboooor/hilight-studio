@@ -331,7 +331,7 @@ class Store private constructor(private val app: Context) {
     val keepNotifUntilDismissed: StateFlow<Boolean> = _keepNotifUntilDismissed.asStateFlow()
 
     private val _notifAlternateIntervalMs =
-        MutableStateFlow(prefs.getInt("notifAlternateIntervalMs", 4000))
+        MutableStateFlow(prefs.getInt("notifAlternateIntervalMs", 4000).coerceIn(2000, 10000))
     val notifAlternateIntervalMs: StateFlow<Int> = _notifAlternateIntervalMs.asStateFlow()
 
     private val _suppression = MutableStateFlow<Suppression?>(null)
@@ -442,7 +442,6 @@ class Store private constructor(private val app: Context) {
         val notifKey: String,
         val rule: AppRule,
         val color: Int,
-        val postTime: Long = 0L,
     )
     private var handoffAwaitingRetry = false
     private var fatalTerminationInFlight = false
@@ -1312,9 +1311,7 @@ class Store private constructor(private val app: Context) {
      * Clears all active notification alerts.
      */
     fun clearActiveNotifications() {
-        if (Looper.myLooper() != main.looper) {
-            main.post { runCatching { clearActiveNotifications() } }
-            return
+            main.post { runCatching { clearActiveNotifications() }.onFailure { Log.w(TAG, "clear notifications failed", it) } }
         }
         activeNotifAlerts.clear()
         stopNotifAlternation()
