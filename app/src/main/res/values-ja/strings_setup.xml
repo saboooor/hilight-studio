@@ -155,6 +155,14 @@
     <string name="setup_inspector_body">HiLight が各通知から読み取った内容を表示します。メッセージ本文は含みません。</string>
     <!-- "Notification inspector" -->
     <string name="setup_inspector_button">通知インスペクター</string>
+    <!-- "Stay on until dismissed" -->
+    <string name="setup_notif_until_dismissed">通知が消えるまで点灯</string>
+    <!-- "Keeps the notification pattern playing until the notification is dismissed from the shade instead of turning off after a set duration." -->
+    <string name="setup_notif_until_dismissed_hint">一定時間で消灯する代わりに、通知が消去されるまで点灯パターンを継続します。</string>
+    <!-- "Alternate pattern every" -->
+    <string name="setup_notif_alternate_interval">切り替え間隔</string>
+    <!-- "When multiple notifications are present, alternates between each notification's pattern and colour." -->
+    <string name="setup_notif_alternate_hint">複数の通知がある場合、それぞれの通知のパターンと色を交互に切り替えます。</string>
 
     <!-- The remembered chat names -->
     <!-- "No chats remembered yet. Chats are listed here so per-contact rules need no typing." -->
