@@ -42,6 +42,13 @@
     <string name="setup_pause_below">Pause below</string>
     <string name="setup_battery_note">Ignored while charging. Battery Saver pauses it either way.</string>
 
+    <!-- Charging battery indicator -->
+    <string name="setup_charging_title">Charging battery indicator</string>
+    <string name="setup_charging_enabled">Show battery level while charging</string>
+    <string name="setup_charging_hint">Shows a gradient from red to green indicating charge progress across the LEDs.</string>
+    <string name="setup_charging_breathe">Breathe active LED</string>
+    <string name="setup_charging_breathe_hint">Gently pulses only the leading LED to show active charging.</string>
+
     <!-- Slider badge for the two percentage sliders above. -->
     <string name="setup_percent">%1$d%%</string>
 

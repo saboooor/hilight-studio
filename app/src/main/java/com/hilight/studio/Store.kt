@@ -319,9 +319,22 @@ class Store private constructor(private val app: Context) {
         MutableStateFlow(prefs.getInt("batteryMinPct", Limits.BATTERY_DEFAULT_PCT))
     val batteryMinPct: StateFlow<Int> = _batteryMinPct.asStateFlow()
 
-    /** Pause whenever Android's own Battery Saver is on, whatever the level. */
     private val _saverGuard = MutableStateFlow(prefs.getBoolean("saverGuard", true))
     val saverGuard: StateFlow<Boolean> = _saverGuard.asStateFlow()
+
+    private val _chargingIndicator =
+        MutableStateFlow(prefs.getBoolean("chargingIndicator", false))
+    val chargingIndicator: StateFlow<Boolean> = _chargingIndicator.asStateFlow()
+
+    private val _chargingBreathe =
+        MutableStateFlow(prefs.getBoolean("chargingBreathe", false))
+    val chargingBreathe: StateFlow<Boolean> = _chargingBreathe.asStateFlow()
+
+    private val _isCharging = MutableStateFlow(false)
+    val isCharging: StateFlow<Boolean> = _isCharging.asStateFlow()
+
+    private val _batteryLevel = MutableStateFlow(100)
+    val batteryLevel: StateFlow<Int> = _batteryLevel.asStateFlow()
 
     private val _respectDnd = MutableStateFlow(prefs.getBoolean("respectDnd", true))
     val respectDnd: StateFlow<Boolean> = _respectDnd.asStateFlow()
@@ -427,6 +440,7 @@ class Store private constructor(private val app: Context) {
     private val activeNotifAlerts = LinkedHashMap<String, ActiveNotificationAlert>()
     private var activeNotifIndex = 0
     private var notifAlternationTask: Runnable? = null
+    private var chargingOverride: JSONObject? = null
     private var stateRevision = SystemClock.elapsedRealtime()
     private var rootTransition = false
     private var drivingTransport: Transport? = null
@@ -510,6 +524,7 @@ class Store private constructor(private val app: Context) {
                             if (_keepNotifUntilDismissed.value && activeNotifAlerts.isNotEmpty()) {
                                 cycleActiveNotificationAlert()
                             }
+                            refreshChargingState()
                         }
                         Intent.ACTION_SCREEN_ON, Intent.ACTION_USER_PRESENT -> {
                             // The screen coming on, or the phone being unlocked, means the
@@ -517,9 +532,15 @@ class Store private constructor(private val app: Context) {
                             // so drop it now instead of burning the rest of its window.
                             cancelAlert()
                             refreshSuppression()
+                            refreshChargingState()
                         }
-                        // plugging in, unplugging, or toggling Battery Saver: re-check, but a power
-                        // event is not the user looking at the phone, so any alert keeps running
+                        Intent.ACTION_POWER_CONNECTED,
+                        Intent.ACTION_POWER_DISCONNECTED,
+                        Intent.ACTION_BATTERY_CHANGED -> {
+                            refreshSuppression()
+                            refreshChargingState()
+                        }
+                        // toggling Battery Saver: re-check, but a power event is not the user looking at the phone
                         else -> refreshSuppression()
                     }
                 }
@@ -530,9 +551,11 @@ class Store private constructor(private val app: Context) {
                 addAction(Intent.ACTION_USER_PRESENT)
                 addAction(Intent.ACTION_POWER_CONNECTED)
                 addAction(Intent.ACTION_POWER_DISCONNECTED)
+                addAction(Intent.ACTION_BATTERY_CHANGED)
                 addAction(android.os.PowerManager.ACTION_POWER_SAVE_MODE_CHANGED)
             },
         )
+        refreshChargingState()
         // Whenever Shizuku appears or disappears, re-push: a new user service starts stateless, and
         // after a loss the ADB helper needs to be told to take over.
         shizuku.onAvailabilityChanged = {
@@ -781,6 +804,18 @@ class Store private constructor(private val app: Context) {
         prefs.edit().putBoolean("saverGuard", v).apply()
         refreshSuppression()
         pushCurrent()
+    }
+
+    fun setChargingIndicator(v: Boolean) {
+        _chargingIndicator.value = v
+        prefs.edit().putBoolean("chargingIndicator", v).apply()
+        refreshChargingState()
+    }
+
+    fun setChargingBreathe(v: Boolean) {
+        _chargingBreathe.value = v
+        prefs.edit().putBoolean("chargingBreathe", v).apply()
+        refreshChargingState()
     }
 
     fun setRespectDnd(v: Boolean) {
@@ -1235,9 +1270,13 @@ class Store private constructor(private val app: Context) {
 
     // ------------------------------------------------------------------ light output
 
-    /** The highest layer that should currently be showing: alert, else override, else ambient. */
+    /** The highest layer that should currently be showing: alert, else override, else charging, else ambient. */
     fun pushCurrent(arm: Boolean = true) =
-        send(_enabled.value, activeAlert ?: foregroundOverride?.second, arm)
+        send(
+            _enabled.value || (_chargingIndicator.value && _isCharging.value),
+            activeAlert ?: foregroundOverride?.second ?: chargingOverride,
+            arm,
+        )
 
     /** Fires an alert for a notification rule. */
     fun fireAlert(rule: AppRule, notifKey: String? = null) {
@@ -1499,6 +1538,53 @@ class Store private constructor(private val app: Context) {
         alertExpiry = null
         // clears the test immediately, and does not hand ambient a fresh window on the way out
         releaseAlert()
+    }
+
+    fun refreshChargingState() {
+        val (pct, plugged) = readBatteryState()
+        _batteryLevel.value = pct
+        _isCharging.value = plugged
+
+        if (!_chargingIndicator.value || !plugged) {
+            if (chargingOverride != null) {
+                chargingOverride = null
+                pushCurrent(arm = false)
+            }
+            return
+        }
+
+        val perLed = computeChargingPerLed(pct)
+        val alertObj = JSONObject().apply {
+            put("id", Bridge.nextAlertId())
+            put("pattern", "battery")
+            put("level", pct)
+            put("breathe", _chargingBreathe.value)
+            put("color", 0xFF00E676.toInt().toUInt().toLong())
+            put("colors", JSONArray().also { a -> perLed.forEach { a.put(it.toUInt().toLong()) } })
+            put("durationMs", 0)
+            put("speedMs", 2000)
+            put("brightness", 0.8)
+            put("source", AlertSource.CHARGING.key)
+            put("spread", true)
+            put("randomIntervalMs", 500)
+            put("randomPerLed", true)
+            put("randomSmooth", true)
+        }
+
+        chargingOverride = alertObj
+        pushCurrent(arm = false)
+    }
+
+    private fun readBatteryState(): Pair<Int, Boolean> {
+        val i = app.registerReceiver(null, android.content.IntentFilter(Intent.ACTION_BATTERY_CHANGED))
+            ?: return 100 to false
+        val level = i.getIntExtra(android.os.BatteryManager.EXTRA_LEVEL, -1)
+        val scale = i.getIntExtra(android.os.BatteryManager.EXTRA_SCALE, -1)
+        val status = i.getIntExtra(android.os.BatteryManager.EXTRA_STATUS, -1)
+        val plugged = i.getIntExtra(android.os.BatteryManager.EXTRA_PLUGGED, 0) != 0
+        val isCharging = plugged || status == android.os.BatteryManager.BATTERY_STATUS_CHARGING
+        val pct = if (level >= 0 && scale > 0) (level * 100 / scale) else 100
+        return pct to isCharging
     }
 
     /** Battery level from the sticky broadcast — no receiver to keep alive. */
@@ -3030,6 +3116,29 @@ class Store private constructor(private val app: Context) {
         private const val DUPLICATE_HEARTBEAT_GRACE_MS = 1_200L
         internal const val COLD_BRIDGE_DISCOVERY_SAMPLES = 3
         internal const val COLD_BRIDGE_DISCOVERY_INTERVAL_MS = 150L
+
+        const val BATTERY_COLOR_RED = 0xFFFF1744.toInt()
+        const val BATTERY_COLOR_YELLOW = 0xFFFFD600.toInt()
+        const val BATTERY_COLOR_GREEN = 0xFF00E676.toInt()
+
+        fun batteryGradientColor(i: Int, n: Int = LED_COUNT): Int {
+            if (n <= 1) return BATTERY_COLOR_GREEN
+            val t = i.toFloat() / (n - 1)
+            return if (t < 0.5f) {
+                val k = (t * 2f).toDouble()
+                Renderer.mix(BATTERY_COLOR_RED, BATTERY_COLOR_YELLOW, k)
+            } else {
+                val k = ((t - 0.5f) * 2f).toDouble()
+                Renderer.mix(BATTERY_COLOR_YELLOW, BATTERY_COLOR_GREEN, k)
+            }
+        }
+
+        fun computeChargingPerLed(pct: Int): List<Int> {
+            val litCount = if (pct <= 0) 1 else ((pct * LED_COUNT + 99) / 100).coerceIn(1, LED_COUNT)
+            return List(LED_COUNT) { index ->
+                if (index < litCount) batteryGradientColor(index, LED_COUNT) else 0x00000000
+            }
+        }
 
         @Volatile
         private var instance: Store? = null

@@ -51,7 +51,8 @@ enum class Pattern(
     CONVERGE("converge", R.string.pattern_converge, cycleMeaningRes = R.string.cycle_converge),
     GLITCH("glitch", R.string.pattern_glitch, cycleMeaningRes = R.string.cycle_glitch),
     RANDOM("random", R.string.pattern_random, usesSpeed = false),
-    CUSTOM("custom", R.string.pattern_custom, usesSpeed = false);
+    CUSTOM("custom", R.string.pattern_custom, usesSpeed = false),
+    BATTERY("battery", R.string.setup_charging_title, usesSpeed = true, cycleMeaningRes = R.string.cycle_breathe);
 
     /** The name to show where a third of a row is all there is. */
     @get:StringRes
@@ -65,7 +66,7 @@ enum class Pattern(
 enum class Trigger { NOTIFICATION, FOREGROUND }
 
 enum class AlertSource(val key: String) {
-    NOTIFICATION("notification"), PREVIEW("preview"), FOREGROUND("foreground")
+    NOTIFICATION("notification"), PREVIEW("preview"), FOREGROUND("foreground"), CHARGING("charging")
 }
 
 /** A continuous Android privacy operation observed by the privileged renderer. */

@@ -246,6 +246,27 @@ public final class Renderer {
                 break;
             }
 
+            case "battery": {
+                int level = Math.max(0, Math.min(100, (int) cfg.optLong("level", 100)));
+                boolean breathe = cfg.optBoolean("breathe", true);
+                int litCount = level <= 0 ? 1 : Math.min(n, (level * n + 99) / 100);
+                for (int i = 0; i < n; i++) {
+                    if (i < litCount) {
+                        int c = batteryGradientColor(i, n);
+                        if (breathe && i == litCount - 1 && level < 100) {
+                            double phase = (t % speed) / (double) speed;
+                            double k = (1 - Math.cos(phase * 2 * Math.PI)) / 2;
+                            out[i] = scale(c, 0.15 + 0.85 * k);
+                        } else {
+                            out[i] = c;
+                        }
+                    } else {
+                        out[i] = 0x00000000;
+                    }
+                }
+                break;
+            }
+
             default:
                 for (int i = 0; i < n; i++) out[i] = palette[i % palette.length];
         }
@@ -311,5 +332,15 @@ public final class Renderer {
                 | ((int) ((r + m) * 255) << 16)
                 | ((int) ((g + m) * 255) << 8)
                 | (int) ((b + m) * 255);
+    }
+
+    static int batteryGradientColor(int i, int n) {
+        if (n <= 1) return 0xFF00E676;
+        double t = (double) i / (n - 1);
+        if (t < 0.5) {
+            return mix(0xFFFF1744, 0xFFFFD600, t * 2.0);
+        } else {
+            return mix(0xFFFFD600, 0xFF00E676, (t - 0.5) * 2.0);
+        }
     }
 }

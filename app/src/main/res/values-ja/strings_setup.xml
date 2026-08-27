@@ -60,6 +60,18 @@
     <!-- "Ignored while charging. Battery Saver pauses it either way." -->
     <string name="setup_battery_note">充電中は適用されません。バッテリーセーバー中はいずれの場合も停止します。</string>
 
+    <!-- Charging battery indicator -->
+    <!-- "Charging battery indicator" -->
+    <string name="setup_charging_title">充電中のバッテリー表示</string>
+    <!-- "Show battery level while charging" -->
+    <string name="setup_charging_enabled">充電中に電池残量を表示</string>
+    <!-- "Shows a gradient from red to green indicating charge progress across the LEDs." -->
+    <string name="setup_charging_hint">赤から緑へのグラデーションで電池残量を表示します。</string>
+    <!-- "Breathe active LED" -->
+    <string name="setup_charging_breathe">充電中の LED を明滅</string>
+    <!-- "Gently pulses only the leading LED to show active charging." -->
+    <string name="setup_charging_breathe_hint">充電の進捗を示す先頭の LED のみをゆっくり明滅させます。</string>
+
     <!-- "%1$d%%" -->
     <string name="setup_percent">%1$d%%</string>
 

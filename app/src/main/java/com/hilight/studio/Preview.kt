@@ -30,6 +30,10 @@ object Renderer {
             Pattern.GRADIENT -> for (i in 0 until n)
                 out[i] = mix(base, cfg.secondColor, i.toDouble() / (n - 1))
 
+            Pattern.BATTERY -> {
+                for (i in 0 until n) out[i] = Store.batteryGradientColor(i, n)
+            }
+
             Pattern.BREATHE -> {
                 val phase = (t % speed) / speed.toDouble()
                 val k = (1 - cos(phase * 2 * PI)) / 2
@@ -191,7 +195,7 @@ object Renderer {
         return (0xFF shl 24) or (r shl 16) or (g shl 8) or b
     }
 
-    private fun mix(a: Int, b: Int, k: Double): Int {
+    fun mix(a: Int, b: Int, k: Double): Int {
         val kk = k.coerceIn(0.0, 1.0)
         val r = (((a shr 16) and 0xFF) * (1 - kk) + ((b shr 16) and 0xFF) * kk).toInt()
         val g = (((a shr 8) and 0xFF) * (1 - kk) + ((b shr 8) and 0xFF) * kk).toInt()

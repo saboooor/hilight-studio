@@ -61,6 +61,7 @@ fun AmbientScreen(store: Store) {
     var editingLed by rememberSaveable { mutableIntStateOf(0) }
 
     PresetsCard(store)
+    ChargingBatteryCard(store)
 
     PixelCard(tone = 2) {
         SectionTitle(stringResource(R.string.style_always_on_style))
@@ -454,4 +455,36 @@ private fun LedSwatch(
             },
         contentAlignment = Alignment.Center,
     ) {}
+}
+
+@Composable
+private fun ChargingBatteryCard(store: Store) {
+    val chargingIndicator by store.chargingIndicator.collectAsStateWithLifecycle()
+    val chargingBreathe by store.chargingBreathe.collectAsStateWithLifecycle()
+    val isCharging by store.isCharging.collectAsStateWithLifecycle()
+    val batteryLevel by store.batteryLevel.collectAsStateWithLifecycle()
+
+    PixelCard {
+        SectionTitle(
+            stringResource(R.string.setup_charging_title),
+            trailing = {
+                if (isCharging) {
+                    LivePill(
+                        stringResource(R.string.setup_percent, batteryLevel),
+                        ok = true,
+                    )
+                }
+            },
+        )
+        Caption(stringResource(R.string.setup_charging_hint))
+        ToggleRow(stringResource(R.string.setup_charging_enabled), chargingIndicator) {
+            store.setChargingIndicator(it)
+        }
+        if (chargingIndicator) {
+            ToggleRow(stringResource(R.string.setup_charging_breathe), chargingBreathe) {
+                store.setChargingBreathe(it)
+            }
+            Caption(stringResource(R.string.setup_charging_breathe_hint))
+        }
+    }
 }
