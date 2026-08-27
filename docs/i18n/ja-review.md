@@ -39,6 +39,13 @@ Leave Latin as-is: HiLight, Shizuku, ADB, LED, JSON, MessagingStyle, shortcutId,
 | `pattern_wave` | Wave | ウェーブ |
 | `pattern_rainbow` | Rainbow | レインボー |
 | `pattern_rainbow_short` | Rainbow | 虹 |
+| `pattern_meter` | Meter | メーター |
+| `pattern_strobe` | Strobe | ストロボ |
+| `pattern_heartbeat` | Heartbeat | ハートビート |
+| `pattern_bounce` | Bounce | バウンス |
+| `pattern_radar` | Radar | レーダー |
+| `pattern_converge` | Converge | コンバージ |
+| `pattern_glitch` | Glitch | グリッチ |
 | `pattern_random` | Random colours | ランダムな色 |
 | `pattern_custom` | Per-LED custom | LED ごとに設定 |
 | `cycle_breathe` | One full breath: dim up to full, back down. | ひと呼吸分です。暗い状態から最大まで明るくなり、また暗くなります。 |
@@ -48,6 +55,13 @@ Leave Latin as-is: HiLight, Shizuku, ADB, LED, JSON, MessagingStyle, shortcutId,
 | `cycle_comet` | One lap of the comet head, its tail trailing 3 LEDs. | コメットの先頭が 1 周します。尾は LED 3 個分です。 |
 | `cycle_wave` | One wave travelling once across the array. | 波が LED アレイを 1 回横切ります。 |
 | `cycle_rainbow` | One trip through every hue, back to the start. | すべての色相を一巡して元に戻ります。 |
+| `cycle_meter` | One progressive fill from 1 to 8 LEDs, then resets. | LED が 1 個ずつ順番に点灯していき、全点灯したあとに消灯します。 |
+| `cycle_strobe` | A rapid triplet strobe burst followed by a pause. | 素早い 3 連ストロボ点滅のあと、一時停止します。 |
+| `cycle_heartbeat` | One double-pulse heartbeat rhythm followed by a rest. | トントンと 2 回連続で拍動し、余韻を残して消えます。 |
+| `cycle_bounce` | One back-and-forth bounce across the LEDs. | 光が LED の端から端まで往復します。 |
+| `cycle_radar` | One smooth rotational radar sweep around the array. | レーダーの光がアレイを滑らかに 1 周スイープします。 |
+| `cycle_converge` | Two beams collide at the centre and burst outwards. | 両端から光が集まって衝突し、外側へ広がります。 |
+| `cycle_glitch` | Erratic digital micro-sparks and cybernetic flickers. | サイバー感のある不規則なデジタル微光とスパークです。 |
 | `suppression_quiet_hours` | Quiet hours | サイレント時間 |
 | `suppression_low_battery` | Low battery | 電池残量が少ない |
 | `suppression_power_saver` | Battery Saver | バッテリーセーバー |
