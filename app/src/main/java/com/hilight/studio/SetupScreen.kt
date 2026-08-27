@@ -150,6 +150,8 @@ fun SetupScreen(store: Store) {
     val quietDim by store.quietDim.collectAsStateWithLifecycle()
     val quietDimPct by store.quietDimPct.collectAsStateWithLifecycle()
     val screenOffOnly by store.screenOffOnly.collectAsStateWithLifecycle()
+    val keepNotifUntilDismissed by store.keepNotifUntilDismissed.collectAsStateWithLifecycle()
+    val notifAlternateIntervalMs by store.notifAlternateIntervalMs.collectAsStateWithLifecycle()
 
     var notifAccess by remember { mutableStateOf(hasNotificationAccess(ctx)) }
     var usageAccess by remember { mutableStateOf(ForegroundWatcher.hasUsageAccess(ctx)) }
@@ -337,6 +339,22 @@ fun SetupScreen(store: Store) {
         Caption(stringResource(R.string.setup_inspector_body))
         TextButton(onClick = { inspecting = true }) {
             ButtonLabel(stringResource(R.string.setup_inspector_button))
+        }
+        ToggleRow(
+            stringResource(R.string.setup_notif_until_dismissed),
+            keepNotifUntilDismissed,
+        ) {
+            store.setKeepNotifUntilDismissed(it)
+        }
+        Caption(stringResource(R.string.setup_notif_until_dismissed_hint))
+        if (keepNotifUntilDismissed) {
+            PixelSlider(
+                stringResource(R.string.setup_notif_alternate_interval),
+                notifAlternateIntervalMs.toFloat(),
+                2000f..10000f,
+                { store.setNotifAlternateIntervalMs(it.toInt()) },
+            ) { formatDuration(it.toInt()) }
+            Caption(stringResource(R.string.setup_notif_alternate_hint))
         }
         // The chat picker's convenience comes from a list of real contact names held on the device,
         // so there has to be a way to be rid of it without uninstalling. Rules keep their own copy of

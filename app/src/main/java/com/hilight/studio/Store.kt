@@ -326,6 +326,14 @@ class Store private constructor(private val app: Context) {
     private val _respectDnd = MutableStateFlow(prefs.getBoolean("respectDnd", true))
     val respectDnd: StateFlow<Boolean> = _respectDnd.asStateFlow()
 
+    private val _keepNotifUntilDismissed =
+        MutableStateFlow(prefs.getBoolean("keepNotifUntilDismissed", false))
+    val keepNotifUntilDismissed: StateFlow<Boolean> = _keepNotifUntilDismissed.asStateFlow()
+
+    private val _notifAlternateIntervalMs =
+        MutableStateFlow(prefs.getInt("notifAlternateIntervalMs", 4000))
+    val notifAlternateIntervalMs: StateFlow<Int> = _notifAlternateIntervalMs.asStateFlow()
+
     private val _suppression = MutableStateFlow<Suppression?>(null)
     val suppression: StateFlow<Suppression?> = _suppression.asStateFlow()
 
@@ -416,6 +424,9 @@ class Store private constructor(private val app: Context) {
      */
     private var activeAlert: JSONObject? = null
     private var alertExpiry: Runnable? = null
+    private val activeNotifAlerts = LinkedHashMap<String, ActiveNotificationAlert>()
+    private var activeNotifIndex = 0
+    private var notifAlternationTask: Runnable? = null
     private var stateRevision = SystemClock.elapsedRealtime()
     private var rootTransition = false
     private var drivingTransport: Transport? = null
@@ -426,6 +437,13 @@ class Store private constructor(private val app: Context) {
     private var handoffShizukuConnectionGeneration: Long? = null
     private var handoffGeneration = 0L
     private var pendingHandoff: PendingOutput? = null
+
+    data class ActiveNotificationAlert(
+        val notifKey: String,
+        val rule: AppRule,
+        val color: Int,
+        val postTime: Long = 0L,
+    )
     private var handoffAwaitingRetry = false
     private var fatalTerminationInFlight = false
     private var fatalFencedSource: HelperStatus? = null
@@ -487,7 +505,12 @@ class Store private constructor(private val app: Context) {
             object : android.content.BroadcastReceiver() {
                 override fun onReceive(c: Context?, i: Intent?) {
                     when (i?.action) {
-                        Intent.ACTION_SCREEN_OFF -> refreshSuppression(armOnRelease = true)
+                        Intent.ACTION_SCREEN_OFF -> {
+                            refreshSuppression(armOnRelease = true)
+                            if (_keepNotifUntilDismissed.value && activeNotifAlerts.isNotEmpty()) {
+                                cycleActiveNotificationAlert()
+                            }
+                        }
                         Intent.ACTION_SCREEN_ON, Intent.ACTION_USER_PRESENT -> {
                             // The screen coming on, or the phone being unlocked, means the
                             // notification has been seen — a rule's colour has no one left to tell,
@@ -668,12 +691,35 @@ class Store private constructor(private val app: Context) {
     fun setEnabled(v: Boolean) {
         _enabled.value = v
         prefs.edit().putBoolean("enabled", v).apply()
+        if (!v) {
+            stopNotifAlternation()
+            activeNotifAlerts.clear()
+        }
         syncForegroundWatcher()
         if (v && root.state.value == RootBackend.State.AVAILABLE &&
             !shizuku.unresolvedIncompatibleRenderer.value
         ) beginRootStart()
         else pushCurrent()
         HiLightTile.refresh(app)
+    }
+
+    fun setKeepNotifUntilDismissed(v: Boolean) {
+        _keepNotifUntilDismissed.value = v
+        prefs.edit().putBoolean("keepNotifUntilDismissed", v).apply()
+        if (!v) {
+            stopNotifAlternation()
+            activeNotifAlerts.clear()
+            if (!alertIsPreview) releaseAlert()
+        }
+    }
+
+    fun setNotifAlternateIntervalMs(v: Int) {
+        val clamped = v.coerceIn(2000, 10000)
+        _notifAlternateIntervalMs.value = clamped
+        prefs.edit().putInt("notifAlternateIntervalMs", clamped).apply()
+        if (_keepNotifUntilDismissed.value && activeNotifAlerts.isNotEmpty() && !alertIsPreview) {
+            cycleActiveNotificationAlert()
+        }
     }
 
     /** Restores or stops the service to match saved rules and the master switch. */
@@ -1193,8 +1239,8 @@ class Store private constructor(private val app: Context) {
     fun pushCurrent(arm: Boolean = true) =
         send(_enabled.value, activeAlert ?: foregroundOverride?.second, arm)
 
-    /** Fires a one-shot alert, then falls back to the override/ambient layer. */
-    fun fireAlert(rule: AppRule) {
+    /** Fires an alert for a notification rule. */
+    fun fireAlert(rule: AppRule, notifKey: String? = null) {
         // The notification listener calls this from its own thread, while the alert slot below, its
         // expiry callback and every other push are main-thread state. Hopping once here keeps the top
         // layer single-threaded instead of trusting two threads not to interleave over it — an alert
@@ -1202,16 +1248,26 @@ class Store private constructor(private val app: Context) {
         // stuck on. The bridge write this ends in already happens on main for every slider the user
         // moves, so it is not a new cost.
         if (Looper.myLooper() != main.looper) {
-            main.post { runCatching { fireAlert(rule) }.onFailure { Log.w(TAG, "alert failed", it) } }
+            main.post { runCatching { fireAlert(rule, notifKey) }.onFailure { Log.w(TAG, "alert failed", it) } }
             return
         }
         if (!_enabled.value) return
+        val color = if (rule.randomColor) randomColor() else rule.color
+
+        if (_keepNotifUntilDismissed.value && !notifKey.isNullOrEmpty()) {
+            activeNotifAlerts[notifKey] = ActiveNotificationAlert(notifKey, rule, color)
+            val keys = activeNotifAlerts.keys.toList()
+            val newIdx = keys.indexOf(notifKey)
+            if (newIdx >= 0) activeNotifIndex = newIdx
+            cycleActiveNotificationAlert()
+            return
+        }
+
         // Quiet hours and the battery rules silence a flash; the global "only while the screen is
         // off" switch does not. That switch governs the always-on look, and letting it block here
         // killed every per-app colour for as long as the screen was on. Per-rule
         // AppRule.onlyWhenScreenOff is how a rule asks to flash only on a dark screen.
         if (guardState().alertSuppression() != null) return
-        val color = if (rule.randomColor) randomColor() else rule.color
         holdAlert(
             alert = Bridge.alertJson(
                 id = Bridge.nextAlertId(),
@@ -1226,6 +1282,108 @@ class Store private constructor(private val app: Context) {
             arm = false,               // a notification must not extend the ambient window
             preview = null,
         )
+    }
+
+    /**
+     * Removes an active notification alert when the notification is dismissed from the shade.
+     */
+    fun dismissNotificationAlert(notifKey: String) {
+        if (Looper.myLooper() != main.looper) {
+            main.post {
+                runCatching { dismissNotificationAlert(notifKey) }
+                    .onFailure { Log.w(TAG, "dismiss alert failed", it) }
+            }
+            return
+        }
+        if (activeNotifAlerts.remove(notifKey) != null) {
+            if (activeNotifAlerts.isEmpty()) {
+                stopNotifAlternation()
+                if (!alertIsPreview) releaseAlert()
+            } else {
+                activeNotifIndex = activeNotifIndex % activeNotifAlerts.size
+                if (_keepNotifUntilDismissed.value && !alertIsPreview) {
+                    cycleActiveNotificationAlert()
+                }
+            }
+        }
+    }
+
+    /**
+     * Clears all active notification alerts.
+     */
+    fun clearActiveNotifications() {
+        if (Looper.myLooper() != main.looper) {
+            main.post { runCatching { clearActiveNotifications() } }
+            return
+        }
+        activeNotifAlerts.clear()
+        stopNotifAlternation()
+        if (!alertIsPreview && _keepNotifUntilDismissed.value) {
+            releaseAlert()
+        }
+    }
+
+    private fun stopNotifAlternation() {
+        notifAlternationTask?.let { main.removeCallbacks(it) }
+        notifAlternationTask = null
+    }
+
+    private fun cycleActiveNotificationAlert() {
+        stopNotifAlternation()
+        if (!_enabled.value || activeNotifAlerts.isEmpty()) {
+            if (!alertIsPreview) releaseAlert()
+            return
+        }
+        if (alertIsPreview) return
+        if (guardState().alertSuppression() != null) {
+            scheduleNextNotifCycle()
+            return
+        }
+
+        val entries = activeNotifAlerts.values.toList()
+        if (entries.isEmpty()) {
+            releaseAlert()
+            return
+        }
+
+        activeNotifIndex = activeNotifIndex % entries.size
+        val current = entries[activeNotifIndex]
+        val interval = _notifAlternateIntervalMs.value
+
+        val pm = app.getSystemService(android.os.PowerManager::class.java)
+        val screenOn = pm?.isInteractive ?: true
+        if (current.rule.onlyWhenScreenOff && screenOn) {
+            scheduleNextNotifCycle()
+            return
+        }
+
+        activeAlert = Bridge.alertJson(
+            id = Bridge.nextAlertId(),
+            pattern = current.rule.pattern,
+            color = current.color,
+            durationMs = interval,
+            speedMs = current.rule.speedMs,
+            brightness = current.rule.brightness,
+            source = AlertSource.NOTIFICATION,
+        )
+        send(_enabled.value, activeAlert, arm = false)
+        scheduleNextNotifCycle()
+    }
+
+    private fun scheduleNextNotifCycle() {
+        stopNotifAlternation()
+        val interval = _notifAlternateIntervalMs.value.toLong()
+        val r = Runnable {
+            if (_keepNotifUntilDismissed.value && activeNotifAlerts.isNotEmpty()) {
+                val count = activeNotifAlerts.size
+                if (count > 1) {
+                    activeNotifIndex = (activeNotifIndex + 1) % count
+                }
+                cycleActiveNotificationAlert()
+            }
+        }
+        notifAlternationTask = r
+        main.postDelayed(r, interval)
     }
 
     /**
@@ -1258,7 +1416,11 @@ class Store private constructor(private val app: Context) {
         activeAlert = null
         alertIsPreview = false
         _previewLook.value = null
-        pushCurrent(arm = false)       // handing the layer back must not extend the ambient window
+        if (_keepNotifUntilDismissed.value && activeNotifAlerts.isNotEmpty()) {
+            cycleActiveNotificationAlert()
+        } else {
+            pushCurrent(arm = false)       // handing the layer back must not extend the ambient window
+        }
     }
 
     /**
@@ -1268,10 +1430,16 @@ class Store private constructor(private val app: Context) {
      * has been there is nothing to keep lit. No-op when no alert is in flight.
      */
     fun cancelAlert() {
-        if (activeAlert == null) return
+        if (activeAlert == null && notifAlternationTask == null) return
         alertExpiry?.let { main.removeCallbacks(it) }
         alertExpiry = null
-        releaseAlert()
+        if (!_keepNotifUntilDismissed.value) {
+            releaseAlert()
+        } else {
+            stopNotifAlternation()
+            activeAlert = null
+            pushCurrent(arm = false)
+        }
     }
 
     /** Holds a look for as long as [pkg] is in the foreground. */

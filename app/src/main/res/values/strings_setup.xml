@@ -101,6 +101,10 @@
     <string name="setup_open_notif_access">Open notification access</string>
     <string name="setup_inspector_body">Shows what HiLight reads from each notification. No message text.</string>
     <string name="setup_inspector_button">Notification inspector</string>
+    <string name="setup_notif_until_dismissed">Stay on until dismissed</string>
+    <string name="setup_notif_until_dismissed_hint">Keeps the notification pattern playing until the notification is dismissed from the shade instead of turning off after a set duration.</string>
+    <string name="setup_notif_alternate_interval">Alternate pattern every</string>
+    <string name="setup_notif_alternate_hint">When multiple notifications are present, alternates between each notification\'s pattern and colour.</string>
 
     <!-- The remembered chat names, which exist so per-contact rules need no typing. Said two ways
          because an empty list has nothing to count. -->

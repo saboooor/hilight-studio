@@ -104,12 +104,13 @@ class NotificationTrigger : NotificationListenerService() {
             ?: if (rule.isCatchAll) MatchStrength.CATCH_ALL else MatchStrength.APP
         val scope = if (rule.isConversationRule) "chat" else "app"
         Log.i(TAG, "alert for ${info.pkg} rule=$scope match=$how pattern=${rule.pattern.key}")
-        store.fireAlert(rule)
+        val notifKey = info.notifKey.ifEmpty { sbn.key }
+        store.fireAlert(rule, notifKey)
         store.noteRuleFired(rule, info)
     }
 
     /**
-     * Forgets a dismissed notification's stamp.
+     * Forgets a dismissed notification's stamp and clears its active alert if any.
      *
      * The key is derived exactly the way it was on the way in, so the two sides cannot drift apart if
      * the peek ever stops using the framework's own key. Without this a chat that is dismissed and
@@ -118,8 +119,11 @@ class NotificationTrigger : NotificationListenerService() {
      */
     override fun onNotificationRemoved(sbn: StatusBarNotification) {
         runCatching {
-            val key = NotificationPeek.read(sbn).notifKey
-            if (key.isNotEmpty()) synchronized(handled) { handled.remove(key) }
+            val key = NotificationPeek.read(sbn).notifKey.ifEmpty { sbn.key }
+            if (key.isNotEmpty()) {
+                synchronized(handled) { handled.remove(key) }
+                store.dismissNotificationAlert(key)
+            }
         }.onFailure { Log.w(TAG, "could not handle removal", it) }
     }
 
@@ -130,6 +134,7 @@ class NotificationTrigger : NotificationListenerService() {
      */
     override fun onListenerDisconnected() {
         synchronized(handled) { handled.clear() }
+        store.clearActiveNotifications()
     }
 
     /**
