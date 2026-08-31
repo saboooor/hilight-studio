@@ -352,10 +352,6 @@ class Store private constructor(private val app: Context) {
         MutableStateFlow(prefs.getBoolean("safetyGuardsDisabled", false))
     val safetyGuardsDisabled: StateFlow<Boolean> = _safetyGuardsDisabled.asStateFlow()
 
-    private val _patternSoundsEnabled =
-        MutableStateFlow(prefs.getBoolean("patternSoundsEnabled", false))
-    val patternSoundsEnabled: StateFlow<Boolean> = _patternSoundsEnabled.asStateFlow()
-
     private val _respectDnd = MutableStateFlow(prefs.getBoolean("respectDnd", true))
     val respectDnd: StateFlow<Boolean> = _respectDnd.asStateFlow()
 
@@ -892,11 +888,6 @@ class Store private constructor(private val app: Context) {
         _safetyGuardsDisabled.value = disabled
         prefs.edit().putBoolean("safetyGuardsDisabled", disabled).apply()
         pushCurrent()
-    }
-
-    fun setPatternSoundsEnabled(enabled: Boolean) {
-        _patternSoundsEnabled.value = enabled
-        prefs.edit().putBoolean("patternSoundsEnabled", enabled).apply()
     }
 
     fun setPriority(v: Int) {

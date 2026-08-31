@@ -62,10 +62,6 @@
     <string name="pattern_random">ランダムな色</string>
     <!-- "Per-LED custom" -->
     <string name="pattern_custom">LED ごとに設定</string>
-    <!-- "Mute pattern sound preview" -->
-    <string name="pattern_sounds_preview_on">パターンのプレビュー音をミュート</string>
-    <!-- "Unmute pattern sound preview" -->
-    <string name="pattern_sounds_preview_off">パターンのプレビュー音をオン</string>
 
     <!-- What one cycle of each pattern means -->
     <!-- "One full breath: dim up to full, back down." -->
