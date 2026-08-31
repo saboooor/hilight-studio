@@ -249,13 +249,18 @@ public final class Engine {
                 renderingPrivacy = false;
                 renderedPrivacyRule = null;
             }
-            ambientTimeoutMs = Math.max(
-                    1_000,
-                    Math.min(
-                            MAX_AMBIENT_TIMEOUT_MS,
-                            o.optLong("ambientTimeoutMs", DEFAULT_AMBIENT_TIMEOUT_MS)
-                    )
-            );
+            boolean safetyDisabled = o.optBoolean("safetyGuardsDisabled", false)
+                    || o.optBoolean("safetyDisabled", false);
+            safety.setEnabled(!safetyDisabled);
+            ambientTimeoutMs = safetyDisabled
+                    ? Math.max(1_000, o.optLong("ambientTimeoutMs", DEFAULT_AMBIENT_TIMEOUT_MS))
+                    : Math.max(
+                            1_000,
+                            Math.min(
+                                    MAX_AMBIENT_TIMEOUT_MS,
+                                    o.optLong("ambientTimeoutMs", DEFAULT_AMBIENT_TIMEOUT_MS)
+                            )
+                    );
             dim = Math.max(0.02, Math.min(1.0, o.optDouble("dim", 1.0)));
             // Only a deliberate user action ("arm") may start a fresh window. Automatic pushes — an
             // alert firing, a foreground override, the app being backgrounded — must not, or the array
@@ -282,7 +287,8 @@ public final class Engine {
                     alert = a;
                     long asked = a.optLong("durationMs", 4000);
                     // an open-ended alert (a "while this app is open" hold) still gets the global cap
-                    long dur = asked <= 0 ? ambientTimeoutMs : Math.min(asked, ALERT_MAX_MS);
+                    long dur = asked <= 0 ? ambientTimeoutMs
+                            : (safetyDisabled ? asked : Math.min(asked, ALERT_MAX_MS));
                     gate.startAlert(elapsedRealtime, dur);
                     renderer.reset();
                     Log.i("alert " + id + " " + a.optString("pattern", "pulse") + " for " + dur + "ms"
@@ -329,6 +335,7 @@ public final class Engine {
                 o.put("ambientHeld", gate.isAmbientHeld());
                 o.put("resting", safety.isResting());
                 o.put("dutyPct", safety.dutyPercent());
+                o.put("safetyGuards", safety.isEnabled());
                 o.put("receivedStateRevision", appliedStateRevision);
                 // Kept for older app builds. Historically this meant the state parser had accepted
                 // the document; it was never proof that the render thread had released the LEDs.

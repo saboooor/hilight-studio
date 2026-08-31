@@ -59,6 +59,10 @@ private fun SafetyState(status: HelperStatus) {
                 Caption(stringResource(R.string.live_safety_resting))
             status.ambientHeld || remaining == 0L ->
                 Caption(stringResource(R.string.live_safety_timed_out))
+            !status.safetyGuards ->
+                Caption(
+                    stringResource(R.string.live_safety_disabled_countdown, remaining / 1000)
+                )
             else ->
                 Caption(
                     stringResource(R.string.live_safety_countdown, remaining / 1000, status.dutyPct)

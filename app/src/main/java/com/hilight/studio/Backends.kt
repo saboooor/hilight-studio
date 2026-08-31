@@ -1447,6 +1447,7 @@ class ShizukuBackend(private val ctx: Context) : Backend {
                 privacyObserverEnabled = o.optBoolean("privacyObserverEnabled", false),
                 privacyObserverState = o.optString("privacyObserverState", "stopped"),
                 privacyPhase = o.optString("privacyPhase", "inactive"),
+                safetyGuards = o.optBoolean("safetyGuards", true),
             )
         }.getOrDefault(
             HelperStatus(alive = binderAlive, identityResolved = false, owner = "shizuku"),

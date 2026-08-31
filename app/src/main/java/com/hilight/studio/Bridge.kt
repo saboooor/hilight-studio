@@ -60,6 +60,7 @@ object Bridge {
         stateRevision: Long = 0,
         /** Opaque one-shot id; absent from every ordinary renderer document. */
         manualBlackClearRequestId: Long? = null,
+        safetyGuardsDisabled: Boolean = false,
     ): String =
         JSONObject().apply {
             put("v", 2)
@@ -72,6 +73,7 @@ object Bridge {
             put("ambient", ambient.toJson())
             put("privacyObserverEnabled", privacyObserverEnabled)
             put("privacyOutputEnabled", privacyOutputEnabled)
+            if (safetyGuardsDisabled) put("safetyGuardsDisabled", true)
             put("privacyRules", JSONArray().also { out ->
                 privacyRules.filter { it.enabled }.forEach { out.put(it.toRendererJson()) }
             })
@@ -332,6 +334,7 @@ object Bridge {
                     privacyObserverEnabled = o.optBoolean("privacyObserverEnabled", false),
                     privacyObserverState = o.optString("privacyObserverState", "stopped"),
                     privacyPhase = o.optString("privacyPhase", "inactive"),
+                    safetyGuards = o.optBoolean("safetyGuards", true),
                 ),
             )
         } catch (_: Throwable) {

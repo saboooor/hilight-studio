@@ -172,4 +172,13 @@
     <string name="setup_root_error_body">Root could not be started. You can retry or use another setup method.</string>
     <string name="setup_root_retry">Retry root</string>
 
+    <!-- Safety limits toggle and confirmation -->
+    <string name="setup_safety_limits_title">Safety limits</string>
+    <string name="setup_safety_limits_toggle">Disable safety limits</string>
+    <string name="setup_safety_limits_caption">Tapers brightness after 10s of continuous light and limits duty cycle to protect the LEDs from heat.</string>
+    <string name="setup_safety_limits_warn_title">Disable safety limits?</string>
+    <string name="setup_safety_limits_warn_body">Disabling safety limits removes the 10-second brightness taper, the 50% duty-cycle rest protection, and duration clamps. Long continuous use can cause LED heating and excessive battery drain.</string>
+    <string name="setup_safety_limits_confirm">Disable</string>
+    <string name="setup_safety_limits_dismiss">Cancel</string>
+
 </resources>
