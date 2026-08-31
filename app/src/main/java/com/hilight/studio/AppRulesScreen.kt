@@ -55,6 +55,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -99,6 +100,8 @@ fun AppRulesScreen(store: Store) {
     var choosingPrivacyActivity by remember { mutableStateOf(false) }
     var privacyPrefilledApp by remember { mutableStateOf<InstalledApp?>(null) }
     var pickingPrivacyAppFor by remember { mutableStateOf<PrivacyActivity?>(null) }
+    var importing by remember { mutableStateOf(false) }
+    var importText by remember { mutableStateOf("") }
     val learnedPackages = remember(conversations) {
         conversations.mapTo(mutableSetOf()) { it.pkg }
     }
@@ -120,6 +123,17 @@ fun AppRulesScreen(store: Store) {
             Icon(Icons.Rounded.Add, contentDescription = null)
             Spacer(Modifier.width(8.dp))
             ButtonLabel(stringResource(R.string.rules_add))
+        }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            FilledTonalButton(
+                onClick = { shareRules(ctx, store.exportRules()) },
+                enabled = rules.isNotEmpty(),
+                modifier = Modifier.weight(1f),
+            ) { ButtonLabel(stringResource(R.string.rules_export)) }
+            FilledTonalButton(
+                onClick = { importText = ""; importing = true },
+                modifier = Modifier.weight(1f),
+            ) { ButtonLabel(stringResource(R.string.rules_import)) }
         }
     }
 
@@ -320,6 +334,50 @@ fun AppRulesScreen(store: Store) {
             onTest = { store.preview(it.pattern, it.color, it.speedMs, it.brightness, it.lightMs) },
         )
     }
+
+    if (importing) {
+        AlertDialog(
+            onDismissRequest = { importing = false },
+            shape = MaterialTheme.shapes.extraLarge,
+            title = { Text(stringResource(R.string.rules_paste_exported)) },
+            text = {
+                OutlinedTextField(
+                    value = importText,
+                    onValueChange = { importText = it },
+                    label = { Text(stringResource(R.string.rules_import_json_field)) },
+                    modifier = Modifier.heightIn(max = 220.dp),
+                )
+            },
+            confirmButton = {
+                val res = LocalResources.current
+                TextButton(onClick = {
+                    val added = store.importRules(importText)
+                    Toast.makeText(
+                        ctx,
+                        if (added == null) res.getString(R.string.rules_import_failed)
+                        else res.getString(R.string.rules_import_count, added),
+                        Toast.LENGTH_SHORT,
+                    ).show()
+                    importing = false
+                }) { ButtonLabel(stringResource(R.string.rules_import)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { importing = false }) {
+                    ButtonLabel(stringResource(R.string.common_cancel))
+                }
+            },
+        )
+    }
+}
+
+private fun shareRules(ctx: android.content.Context, text: String) {
+    val send = Intent(Intent.ACTION_SEND).apply {
+        type = "text/plain"
+        putExtra(Intent.EXTRA_TEXT, text)
+    }
+    ctx.startActivity(
+        Intent.createChooser(send, ctx.getString(R.string.rules_export_chooser))
+    )
 }
 
 /**

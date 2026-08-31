@@ -184,6 +184,13 @@ Leave Latin as-is: HiLight, Shizuku, ADB, LED, JSON, MessagingStyle, shortcutId,
 | `rules_intro_apps` | Choose an app, then what HiLight does when it notifies you — or while it is open. | アプリを選び、そのアプリから通知が届いたとき、またはアプリ表示中に HiLight が何をするかを設定します。 |
 | `rules_intro_messaging` | Messaging apps go one step further: a colour for a single contact or chat. | メッセージアプリではもう一歩進んで、特定の連絡先やチャットだけに色を設定できます。 |
 | `rules_add` | Add app rule | アプリ別ルールを追加 |
+| `rules_export` | Export | 書き出し |
+| `rules_import` | Import | 読み込み |
+| `rules_export_chooser` | Export app rules | アプリ別ルールを書き出す |
+| `rules_paste_exported` | Paste exported rules | 書き出したルールを貼り付け |
+| `rules_import_json_field` | JSON | JSON |
+| `rules_import_failed` | That JSON could not be read | その JSON を読み込めませんでした |
+| `rules_import_count` | Imported %1$d | %1$d 件を読み込みました |
 | `rules_card_summary` | %1$s · %2$s | %1$s · %2$s |
 | `rules_random_colour` | Random colour | ランダムな色 |
 | `rules_trigger_notification_short` | on notification | 通知時 |
