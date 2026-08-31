@@ -816,6 +816,27 @@ public final class EngineReleaseTest {
         assertEquals((int) 0xFF00FF00L, rig.io.lastColor());
     }
 
+    @Test
+    public void safetyGuardsDisabledBypassesResting() throws Exception {
+        Rig rig = new Rig();
+        rig.finishStartupCycle();
+        SafetyGuard shortWindow = new SafetyGuard(100, 0.5, 1_000, 20, 0.5);
+        Engine engine = new Engine(rig.lights, rig.rendererClock, shortWindow);
+        long armedAt = 1_000;
+        rig.rendererClock.now = armedAt;
+        engine.setState("{\"enabled\":true,\"arm\":true,\"ambientTimeoutMs\":1000,\"safetyGuardsDisabled\":true,"
+                + "\"ambient\":{\"mode\":\"solid\",\"color\":4294901760}}");
+
+        // Advance well past duty cycle limit of 50 ms
+        for (int i = 0; i <= 6; i++) {
+            rig.tick(engine, 10_000 + i * 1_000L, armedAt + i * 10L);
+        }
+        JSONObject status = new JSONObject(engine.status());
+        assertFalse(status.getBoolean("resting"));
+        assertFalse(status.getBoolean("safetyGuards"));
+        assertTrue(rig.lights.isSessionOpen());
+    }
+
     private static final class Rig {
         final FakeIo io = new FakeIo();
         final FakeClock clock = new FakeClock();

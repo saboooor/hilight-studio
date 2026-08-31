@@ -70,4 +70,18 @@ public final class SafetyGuardTest {
 
         assertArrayEquals(new int[]{Renderer.scale(RED[0], 0.5)}, guard.apply(RED, 0, 0.5));
     }
+
+    @Test
+    public void disabledSafetyGuardBypassesTaperAndDutyRest() {
+        SafetyGuard guard = new SafetyGuard(100, 0.5, 20, 20, 0.5);
+        guard.setEnabled(false);
+
+        // Does not taper past 20 ms
+        assertArrayEquals(RED, guard.apply(RED, 0, 1.0));
+        assertArrayEquals(RED, guard.apply(RED, 30, 1.0));
+
+        // Does not rest past 50 ms duty limit
+        assertArrayEquals(RED, guard.apply(RED, 60, 1.0));
+        assertFalse(guard.isResting());
+    }
 }

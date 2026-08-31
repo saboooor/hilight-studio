@@ -157,6 +157,7 @@ fun SetupScreen(store: Store) {
     val faceDownSensorAvailable = remember(ctx) { ForegroundWatcher.hasFaceDownSensor(ctx) }
     val keepNotifUntilDismissed by store.keepNotifUntilDismissed.collectAsStateWithLifecycle()
     val notifAlternateIntervalMs by store.notifAlternateIntervalMs.collectAsStateWithLifecycle()
+    val safetyGuardsDisabled by store.safetyGuardsDisabled.collectAsStateWithLifecycle()
 
     var notifAccess by remember { mutableStateOf(hasNotificationAccess(ctx)) }
     var usageAccess by remember { mutableStateOf(ForegroundWatcher.hasUsageAccess(ctx)) }
@@ -166,6 +167,7 @@ fun SetupScreen(store: Store) {
     var updateResult by remember { mutableStateOf<UpdateCheckResult?>(null) }
     var selfTestCountdown by remember { mutableIntStateOf(0) }
     var confirmingFaceDown by remember { mutableStateOf(false) }
+    var confirmingSafetyLimits by remember { mutableStateOf(false) }
     val updateScope = rememberCoroutineScope()
     val conversations by store.conversations.collectAsStateWithLifecycle()
 
@@ -298,6 +300,21 @@ fun SetupScreen(store: Store) {
         }
     }
 
+    PixelCard(tone = 2) {
+        SectionTitle(stringResource(R.string.setup_safety_limits_title))
+        ToggleRow(
+            stringResource(R.string.setup_safety_limits_toggle),
+            safetyGuardsDisabled,
+        ) { wanted ->
+            if (wanted) {
+                confirmingSafetyLimits = true
+            } else {
+                store.setSafetyGuardsDisabled(false)
+            }
+        }
+        Caption(stringResource(R.string.setup_safety_limits_caption))
+    }
+
     if (confirmingFaceDown) {
         FaceDownConsentDialog(
             onAccepted = {
@@ -306,6 +323,33 @@ fun SetupScreen(store: Store) {
                 confirmingFaceDown = false
             },
             onDismiss = { confirmingFaceDown = false },
+        )
+    }
+
+    if (confirmingSafetyLimits) {
+        AlertDialog(
+            onDismissRequest = { confirmingSafetyLimits = false },
+            shape = MaterialTheme.shapes.extraLarge,
+            title = { Text(stringResource(R.string.setup_safety_limits_warn_title)) },
+            text = {
+                Text(
+                    stringResource(R.string.setup_safety_limits_warn_body),
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        store.setSafetyGuardsDisabled(true)
+                        confirmingSafetyLimits = false
+                    },
+                ) { ButtonLabel(stringResource(R.string.setup_safety_limits_confirm)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmingSafetyLimits = false }) {
+                    ButtonLabel(stringResource(R.string.setup_safety_limits_dismiss))
+                }
+            },
         )
     }
 

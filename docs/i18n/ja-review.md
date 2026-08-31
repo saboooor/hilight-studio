@@ -140,6 +140,7 @@ Leave Latin as-is: HiLight, Shizuku, ADB, LED, JSON, MessagingStyle, shortcutId,
 | `live_safety_resting` | Resting to protect the LEDs — they have been lit too much recently. | LED を保護するため休止しています。直近の点灯時間が長すぎました。 |
 | `live_safety_timed_out` | Auto-off reached. Change the style or flip the switch to light it again. | 自動オフに達しました。もう一度点灯するには、スタイルを変えるかスイッチを切り替えてください。 |
 | `live_safety_countdown` | Auto-off in %1$ds · duty used %2$d%% | 自動オフまで %1$d秒 · 点灯時間 %2$d%% |
+| `live_safety_disabled_countdown` | Auto-off in %1$ds · safety limits disabled | 自動オフまで %1$d秒 · 制限無効 |
 | `live_renderer_pid` | renderer pid %1$d · %2$s | レンダラー pid %1$d · %2$s |
 | `live_session_open` | session open | セッションあり |
 | `live_session_closed` | session closed | セッションなし |
@@ -367,6 +368,13 @@ Leave Latin as-is: HiLight, Shizuku, ADB, LED, JSON, MessagingStyle, shortcutId,
 | `setup_priority_title` | Session priority | セッションの優先度 |
 | `setup_priority_body` | Raise if the system\'s own effects interrupt yours; lower to let them win. | システム側の演出に邪魔される場合は上げ、システム側を優先させたい場合は下げてください。 |
 | `setup_priority_label` | Priority | 優先度 |
+| `setup_safety_limits_title` | Safety limits | 安全制限 |
+| `setup_safety_limits_toggle` | Disable safety limits | 安全制限を無効化 |
+| `setup_safety_limits_caption` | Tapers brightness after 10s of continuous light and limits duty cycle to protect the LEDs from heat. | LED の発熱を防ぐため、10 秒以上の連続点灯で段階的に減光し、点灯率を制限します。 |
+| `setup_safety_limits_warn_title` | Disable safety limits? | 安全制限を無効化しますか？ |
+| `setup_safety_limits_warn_body` | Disabling safety limits removes the 10-second brightness taper, the 50% duty-cycle rest protection, and duration clamps. Long continuous use can cause LED heating and excessive battery drain. | 安全制限を無効化すると、10 秒後の減光、50% 点灯率での休止保護、および点灯時間の上限が無効になります。長時間の連続点灯は LED の発熱やバッテリー消費の原因になります。 |
+| `setup_safety_limits_confirm` | Disable | 無効化 |
+| `setup_safety_limits_dismiss` | Cancel | キャンセル |
 
 ## `strings_style.xml`
 

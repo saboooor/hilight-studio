@@ -348,6 +348,10 @@ class Store private constructor(private val app: Context) {
     private val _batteryLevel = MutableStateFlow(100)
     val batteryLevel: StateFlow<Int> = _batteryLevel.asStateFlow()
 
+    private val _safetyGuardsDisabled =
+        MutableStateFlow(prefs.getBoolean("safetyGuardsDisabled", false))
+    val safetyGuardsDisabled: StateFlow<Boolean> = _safetyGuardsDisabled.asStateFlow()
+
     private val _respectDnd = MutableStateFlow(prefs.getBoolean("respectDnd", true))
     val respectDnd: StateFlow<Boolean> = _respectDnd.asStateFlow()
 
@@ -878,6 +882,12 @@ class Store private constructor(private val app: Context) {
     fun setRespectDnd(v: Boolean) {
         _respectDnd.value = v
         prefs.edit().putBoolean("respectDnd", v).apply()
+    }
+
+    fun setSafetyGuardsDisabled(disabled: Boolean) {
+        _safetyGuardsDisabled.value = disabled
+        prefs.edit().putBoolean("safetyGuardsDisabled", disabled).apply()
+        pushCurrent()
     }
 
     fun setPriority(v: Int) {
@@ -1975,6 +1985,7 @@ class Store private constructor(private val app: Context) {
             privacyOutputEnabled = privacyAllowed,
             stateRevision = revision,
             manualBlackClearRequestId = effectiveManualRequestId,
+            safetyGuardsDisabled = _safetyGuardsDisabled.value,
         )
         pushUsingStatus(active, activeStatus, json)
         if ((active.transport == Transport.ADB || active.transport == Transport.ROOT) &&

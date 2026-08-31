@@ -19,6 +19,7 @@ final class SafetyGuard {
     private final long taperAfterMs;
     private final long taperRampMs;
     private final double taperFloor;
+    private boolean enabled = true;
 
     private long windowStart = Long.MIN_VALUE;
     private long lastAppliedAt = Long.MIN_VALUE;
@@ -49,6 +50,17 @@ final class SafetyGuard {
         this.taperFloor = taperFloor;
     }
 
+    void setEnabled(boolean enabled) {
+        this.enabled = enabled;
+        if (!enabled) {
+            this.resting = false;
+        }
+    }
+
+    boolean isEnabled() {
+        return enabled;
+    }
+
     /** Applies limits using monotonic elapsed realtime supplied by the renderer. */
     int[] apply(int[] frame, long elapsedRealtime, double dim) {
         if (lastAppliedAt != Long.MIN_VALUE && elapsedRealtime < lastAppliedAt) {
@@ -67,6 +79,12 @@ final class SafetyGuard {
             int[] dimmed = new int[frame.length];
             for (int i = 0; i < frame.length; i++) dimmed[i] = Renderer.scale(frame[i], dim);
             frame = dimmed;
+        }
+
+        if (!enabled) {
+            resting = false;
+            noteOutput(FrameVisibility.isVisible(frame));
+            return frame;
         }
 
         if (resting || litMsInWindow >= dutyWindowMs * maxDuty) {

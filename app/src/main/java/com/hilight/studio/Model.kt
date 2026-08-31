@@ -458,6 +458,7 @@ data class HelperStatus(
     val privacyObserverEnabled: Boolean = false,
     val privacyObserverState: String = "stopped",
     val privacyPhase: String = "inactive",
+    val safetyGuards: Boolean = true,
 ) {
     val rendererCompatibility: RendererCompatibility
         get() = when {
