@@ -1413,107 +1413,12 @@ class Store private constructor(private val app: Context) {
      * Clears all active notification alerts.
      */
     fun clearActiveNotifications() {
-            main.post { runCatching { clearActiveNotifications() }.onFailure { Log.w(TAG, "clear notifications failed", it) } }
-        }
-        activeNotifAlerts.clear()
-        stopNotifAlternation()
-        if (!alertIsPreview && _keepNotifUntilDismissed.value) {
-            releaseAlert()
-        }
-    }
-
-    private fun stopNotifAlternation() {
-        notifAlternationTask?.let { main.removeCallbacks(it) }
-        notifAlternationTask = null
-    }
-
-    private fun cycleActiveNotificationAlert() {
-        stopNotifAlternation()
-        if (!_enabled.value || activeNotifAlerts.isEmpty()) {
-            if (!alertIsPreview) releaseAlert()
-            return
-        }
-        if (alertIsPreview) return
-        if (guardState().alertSuppression() != null) {
-            scheduleNextNotifCycle()
-            return
-        }
-
-        val entries = activeNotifAlerts.values.toList()
-        if (entries.isEmpty()) {
-            releaseAlert()
-            return
-        }
-
-        activeNotifIndex = activeNotifIndex % entries.size
-        val current = entries[activeNotifIndex]
-        val interval = _notifAlternateIntervalMs.value
-
-        val pm = app.getSystemService(android.os.PowerManager::class.java)
-        val screenOn = pm?.isInteractive ?: true
-        if (current.rule.onlyWhenScreenOff && screenOn) {
-            scheduleNextNotifCycle()
-            return
-        }
-
-        activeAlert = Bridge.alertJson(
-            id = Bridge.nextAlertId(),
-            pattern = current.rule.pattern,
-            color = current.color,
-            durationMs = interval,
-            speedMs = current.rule.speedMs,
-            brightness = current.rule.brightness,
-            source = AlertSource.NOTIFICATION,
-        )
-        send(_enabled.value, activeAlert, arm = false)
-        scheduleNextNotifCycle()
-    }
-
-    private fun scheduleNextNotifCycle() {
-        stopNotifAlternation()
-        val interval = _notifAlternateIntervalMs.value.toLong()
-        val r = Runnable {
-            if (_keepNotifUntilDismissed.value && activeNotifAlerts.isNotEmpty()) {
-                val count = activeNotifAlerts.size
-                if (count > 1) {
-                    activeNotifIndex = (activeNotifIndex + 1) % count
-                }
-                cycleActiveNotificationAlert()
-            }
-        }
-        notifAlternationTask = r
-        main.postDelayed(r, interval)
-    }
-
-    /**
-     * Removes an active notification alert when the notification is dismissed from the shade.
-     */
-    fun dismissNotificationAlert(notifKey: String) {
         if (Looper.myLooper() != main.looper) {
             main.post {
-                runCatching { dismissNotificationAlert(notifKey) }
-                    .onFailure { Log.w(TAG, "dismiss alert failed", it) }
+                runCatching { clearActiveNotifications() }
+                    .onFailure { Log.w(TAG, "clear notifications failed", it) }
             }
             return
-        }
-        if (activeNotifAlerts.remove(notifKey) != null) {
-            if (activeNotifAlerts.isEmpty()) {
-                stopNotifAlternation()
-                if (!alertIsPreview) releaseAlert()
-            } else {
-                activeNotifIndex = activeNotifIndex % activeNotifAlerts.size
-                if (_keepNotifUntilDismissed.value && !alertIsPreview) {
-                    cycleActiveNotificationAlert()
-                }
-            }
-        }
-    }
-
-    /**
-     * Clears all active notification alerts.
-     */
-    fun clearActiveNotifications() {
-            main.post { runCatching { clearActiveNotifications() }.onFailure { Log.w(TAG, "clear notifications failed", it) } }
         }
         activeNotifAlerts.clear()
         stopNotifAlternation()
