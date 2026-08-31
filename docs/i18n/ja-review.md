@@ -47,6 +47,8 @@ Leave Latin as-is: HiLight, Shizuku, ADB, LED, JSON, MessagingStyle, shortcutId,
 | `pattern_glitch` | Glitch | グリッチ |
 | `pattern_random` | Random colours | ランダムな色 |
 | `pattern_custom` | Per-LED custom | LED ごとに設定 |
+| `pattern_sounds_preview_on` | Mute pattern sound preview | パターンのプレビュー音をミュート |
+| `pattern_sounds_preview_off` | Unmute pattern sound preview | パターンのプレビュー音をオン |
 | `cycle_breathe` | One full breath: dim up to full, back down. | ひと呼吸分です。暗い状態から最大まで明るくなり、また暗くなります。 |
 | `cycle_blink` | One on-off pair — lit for the first half. | 点灯と消灯の 1 組です。前半が点灯です。 |
 | `cycle_pulse` | One flash: snap to full, then fade away. | 1 回の閃光です。一気に最大まで明るくなり、そのまま消えていきます。 |
@@ -348,6 +350,8 @@ Leave Latin as-is: HiLight, Shizuku, ADB, LED, JSON, MessagingStyle, shortcutId,
 | `setup_open_usage_access` | Open usage access | 使用状況へのアクセスを開く |
 | `setup_appearance_title` | Appearance | 外観 |
 | `setup_wallpaper_colours` | Wallpaper colours | 壁紙の色 |
+| `setup_pattern_sounds_toggle` | Pattern sound effects | パターンの効果音 |
+| `setup_pattern_sounds_caption` | Play subtle sound cues when previewing and selecting patterns. | 発光パターンのプレビューや選択時に、専用の控えめな効果音を鳴らします。 |
 | `setup_updates_title` | Updates | アップデート |
 | `setup_updates_installed` | Installed %1$s | インストール済み %1$s |
 | `setup_updates_body` | Check GitHub for a newer experimental release. | GitHub で新しい試験版リリースを確認します。 |

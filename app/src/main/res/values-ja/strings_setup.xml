@@ -213,6 +213,10 @@
     <string name="setup_appearance_title">外観</string>
     <!-- "Wallpaper colours" -->
     <string name="setup_wallpaper_colours">壁紙の色</string>
+    <!-- "Pattern sound effects" -->
+    <string name="setup_pattern_sounds_toggle">パターンの効果音</string>
+    <!-- "Play subtle sound cues when previewing and selecting patterns." -->
+    <string name="setup_pattern_sounds_caption">発光パターンのプレビューや選択時に、専用の控えめな効果音を鳴らします。</string>
 
     <!-- Manual GitHub update check -->
     <!-- "Updates" -->

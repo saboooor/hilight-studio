@@ -172,6 +172,8 @@ fun PrivacyRuleEditorDialog(
     onDismiss: () -> Unit,
     onSave: (PrivacyRule) -> Unit,
     onTest: (PrivacyRule) -> Unit,
+    soundEnabled: Boolean = false,
+    onToggleSound: ((Boolean) -> Unit)? = null,
 ) {
     var edited by remember(rule) { mutableStateOf(rule) }
     val replacesAnother = existing.any { it.id == edited.id && it != rule }
@@ -217,6 +219,8 @@ fun PrivacyRuleEditorDialog(
                     selected = edited.pattern,
                     options = PrivacyRule.selectablePatterns,
                     onSelect = { edited = edited.copy(pattern = it) },
+                    soundEnabled = soundEnabled,
+                    onToggleSound = onToggleSound,
                 )
                 if (edited.pattern == Pattern.GRADIENT) {
                     ColorPicker(

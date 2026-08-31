@@ -158,6 +158,7 @@ fun SetupScreen(store: Store) {
     val keepNotifUntilDismissed by store.keepNotifUntilDismissed.collectAsStateWithLifecycle()
     val notifAlternateIntervalMs by store.notifAlternateIntervalMs.collectAsStateWithLifecycle()
     val safetyGuardsDisabled by store.safetyGuardsDisabled.collectAsStateWithLifecycle()
+    val patternSoundsEnabled by store.patternSoundsEnabled.collectAsStateWithLifecycle()
 
     var notifAccess by remember { mutableStateOf(hasNotificationAccess(ctx)) }
     var usageAccess by remember { mutableStateOf(ForegroundWatcher.hasUsageAccess(ctx)) }
@@ -496,6 +497,10 @@ fun SetupScreen(store: Store) {
         ToggleRow(stringResource(R.string.setup_wallpaper_colours), dynamicColor) {
             store.setDynamicColor(it)
         }
+        ToggleRow(stringResource(R.string.setup_pattern_sounds_toggle), patternSoundsEnabled) {
+            store.setPatternSoundsEnabled(it)
+        }
+        Caption(stringResource(R.string.setup_pattern_sounds_caption))
     }
 
     PixelCard {
