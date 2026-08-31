@@ -26,5 +26,23 @@ class AppRulePersistenceTest {
             .put("label", "Example")
 
         assertFalse(AppRule.fromJson(legacy).onlyWhenFaceDown)
+        assertFalse(AppRule.fromJson(legacy).patternSound)
+    }
+
+    @Test
+    fun `patternSound survives round trip and defaults to false`() {
+        val withSound = AppRule(
+            pkg = "com.example",
+            label = "Example",
+            patternSound = true,
+        )
+        assertTrue(AppRule.fromJson(withSound.toPrefsJson()).patternSound)
+
+        val withoutSound = AppRule(
+            pkg = "com.example",
+            label = "Example",
+        )
+        assertFalse(withoutSound.patternSound)
+        assertFalse(AppRule.fromJson(withoutSound.toPrefsJson()).patternSound)
     }
 }

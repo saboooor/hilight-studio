@@ -85,6 +85,7 @@ data class Ambient(
     val randomSmooth: Boolean = true,
     val randomSaturation: Float = 1f,
     val rotateMs: Int = 0,
+    val patternSound: Boolean = false,
 ) {
     fun toJson(): JSONObject = JSONObject().apply {
         put("mode", pattern.key)
@@ -122,6 +123,7 @@ data class Ambient(
             randomSmooth = o.optBoolean("randomSmooth", true),
             randomSaturation = o.optDouble("randomSaturation", 1.0).toFloat(),
             rotateMs = o.optInt("rotateMs", 0),
+            patternSound = o.optBoolean("patternSound", false),
         )
     }
 
@@ -139,6 +141,7 @@ data class Ambient(
         put("randomSmooth", randomSmooth)
         put("randomSaturation", randomSaturation.toDouble())
         put("rotateMs", rotateMs)
+        put("patternSound", patternSound)
     }
 }
 
@@ -179,6 +182,7 @@ data class AppRule(
      * for a rule that already names a group.
      */
     val conversationIsGroup: Boolean = false,
+    val patternSound: Boolean = false,
 ) {
     /** The catch-all rule, which matches any app without one of its own. */
     val isCatchAll: Boolean get() = pkg == ANY_APP
@@ -213,6 +217,7 @@ data class AppRule(
         conversationName?.let { put("conversationName", it) }
         put("includeGroups", includeGroups)
         put("conversationIsGroup", conversationIsGroup)
+        put("patternSound", patternSound)
     }
 
     companion object {
@@ -238,6 +243,7 @@ data class AppRule(
             conversationName = o.optString("conversationName", "").takeIf { it.isNotEmpty() },
             includeGroups = o.optBoolean("includeGroups", false),
             conversationIsGroup = o.optBoolean("conversationIsGroup", false),
+            patternSound = o.optBoolean("patternSound", false),
         )
     }
 }
@@ -255,6 +261,7 @@ data class PrivacyRule(
     val cooldownMs: Int = DEFAULT_COOLDOWN_MS,
     val speedMs: Int = 800,
     val brightness: Float = 1f,
+    val patternSound: Boolean = false,
 ) {
     val id: String get() = "${activity.key}|$pkg"
     val isCatchAll: Boolean get() = pkg == AppRule.ANY_APP
@@ -271,6 +278,7 @@ data class PrivacyRule(
         put("cooldownMs", cooldownMs)
         put("speedMs", speedMs)
         put("brightness", brightness.toDouble())
+        put("patternSound", patternSound)
     }
 
     /** The renderer does not need the translated app label. */
@@ -341,6 +349,7 @@ data class PrivacyRule(
                 speedMs = o.optInt("speedMs", defaults.speedMs).coerceIn(100, 10_000),
                 brightness = o.optDouble("brightness", defaults.brightness.toDouble()).toFloat()
                     .coerceIn(0.05f, 1f),
+                patternSound = o.optBoolean("patternSound", false),
             )
         }
     }

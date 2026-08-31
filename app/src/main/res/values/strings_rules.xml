@@ -61,6 +61,8 @@
     <string name="rules_only_face_down">Only when the phone is face down</string>
     <string name="rules_time_per_cycle">Time per cycle</string>
     <string name="rules_brightness">Brightness</string>
+    <string name="rules_pattern_sound">Pattern sound</string>
+    <string name="rules_pattern_sound_caption">Play subtle sound effects while this pattern is active.</string>
     <string name="rules_test_on_leds">Test on the LEDs</string>
 
     <!-- Holding the array on for longer than half a minute, and the two warnings gating it -->

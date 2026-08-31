@@ -5,7 +5,10 @@ import android.media.AudioFormat
 import android.media.AudioTrack
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlin.math.PI
 import kotlin.math.exp
@@ -24,6 +27,7 @@ object PatternAudioPlayer {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val pcmCache = mutableMapOf<Pattern, ByteArray>()
+    private var activeJob: Job? = null
 
     init {
         for (pattern in Pattern.entries) {
@@ -39,43 +43,93 @@ object PatternAudioPlayer {
         pcmCache[pattern] ?: synthesize(pattern)
 
     /**
-     * Plays the dedicated sound effect for [pattern] asynchronously.
+     * Starts active rhythmic playback for [pattern] while the pattern is active.
+     * Loops at [speedMs] interval if animated, or plays once for static patterns.
+     * Automatically stops after [durationMs] if provided.
+     */
+    @Synchronized
+    fun startActive(pattern: Pattern, speedMs: Int, durationMs: Long? = null) {
+        stopActive()
+        if (pattern == Pattern.OFF) return
+
+        val bytes = getPcmBuffer(pattern)
+        if (bytes.isEmpty()) return
+
+        val loopInterval = when (pattern) {
+            Pattern.RANDOM -> 1500L
+            Pattern.SOLID, Pattern.GRADIENT, Pattern.CUSTOM -> -1L // one-shot
+            else -> speedMs.coerceIn(100, 10_000).toLong()
+        }
+
+        activeJob = scope.launch {
+            val startTime = System.currentTimeMillis()
+            while (isActive) {
+                playBufferDirect(bytes)
+                if (loopInterval <= 0) break // one-shot finished
+
+                val elapsed = System.currentTimeMillis() - startTime
+                if (durationMs != null && elapsed + loopInterval >= durationMs) {
+                    break
+                }
+                delay(loopInterval)
+            }
+        }
+    }
+
+    /**
+     * Stops any currently active rhythmic pattern sound loop.
+     */
+    @Synchronized
+    fun stopActive() {
+        activeJob?.cancel()
+        activeJob = null
+    }
+
+    /**
+     * Plays the dedicated sound effect for [pattern] once asynchronously.
      */
     fun play(pattern: Pattern) {
         val bytes = getPcmBuffer(pattern)
         if (bytes.isEmpty()) return
 
         scope.launch {
+            playBufferDirect(bytes)
+        }
+    }
+
+    private suspend fun playBufferDirect(bytes: ByteArray) {
+        var track: AudioTrack? = null
+        try {
+            val attributes = AudioAttributes.Builder()
+                .setUsage(AudioAttributes.USAGE_ASSISTANCE_SONIFICATION)
+                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                .build()
+
+            val format = AudioFormat.Builder()
+                .setSampleRate(SAMPLE_RATE)
+                .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
+                .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
+                .build()
+
+            track = AudioTrack.Builder()
+                .setAudioAttributes(attributes)
+                .setAudioFormat(format)
+                .setBufferSizeInBytes(bytes.size)
+                .setTransferMode(AudioTrack.MODE_STATIC)
+                .build()
+
+            track.write(bytes, 0, bytes.size)
+            track.play()
+
+            val durationMs = (bytes.size / 2 * 1000L) / SAMPLE_RATE
+            delay(durationMs + 20)
+        } catch (_: Throwable) {
+            // Ignore audio track initialization/playback errors on unsupported devices
+        } finally {
             try {
-                val attributes = AudioAttributes.Builder()
-                    .setUsage(AudioAttributes.USAGE_ASSISTANCE_SONIFICATION)
-                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                    .build()
-
-                val format = AudioFormat.Builder()
-                    .setSampleRate(SAMPLE_RATE)
-                    .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
-                    .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
-                    .build()
-
-                val track = AudioTrack.Builder()
-                    .setAudioAttributes(attributes)
-                    .setAudioFormat(format)
-                    .setBufferSizeInBytes(bytes.size)
-                    .setTransferMode(AudioTrack.MODE_STATIC)
-                    .build()
-
-                track.write(bytes, 0, bytes.size)
-                track.play()
-
-                // Calculate duration in ms and release track when finished
-                val durationMs = (bytes.size / 2 * 1000L) / SAMPLE_RATE
-                kotlinx.coroutines.delay(durationMs + 50)
-                track.stop()
-                track.release()
-            } catch (_: Throwable) {
-                // Ignore audio track initialization/playback errors on unsupported devices
-            }
+                track?.stop()
+                track?.release()
+            } catch (_: Throwable) {}
         }
     }
 
@@ -193,91 +247,6 @@ object PatternAudioPlayer {
                     sample
                 }
             }
-            Pattern.METER -> {
-                durationMs = 75
-                sampleGenerator = { t, _ ->
-                    var sample = 0.0
-                    val freqs = doubleArrayOf(700.0, 900.0, 1100.0, 1300.0, 1500.0)
-                    for (i in freqs.indices) {
-                        val ti = t - i * 0.012
-                        if (ti >= 0 && ti < 0.010) {
-                            sample += 0.3 * exp(-ti / 0.003) * sin(2 * PI * freqs[i] * ti)
-                        }
-                    }
-                    sample
-                }
-            }
-            Pattern.STROBE -> {
-                durationMs = 60
-                sampleGenerator = { t, _ ->
-                    var sample = 0.0
-                    val times = doubleArrayOf(0.0, 0.018, 0.036)
-                    for (ti0 in times) {
-                        val ti = t - ti0
-                        if (ti >= 0 && ti < 0.010) {
-                            sample += 0.45 * exp(-ti / 0.0025) * sin(2 * PI * 2400.0 * ti)
-                        }
-                    }
-                    sample
-                }
-            }
-            Pattern.HEARTBEAT -> {
-                durationMs = 120
-                sampleGenerator = { t, _ ->
-                    val thud1 = if (t < 0.035) exp(-t / 0.009) * sin(2 * PI * 180.0 * t) else 0.0
-                    val t2 = t - 0.045
-                    val thud2 = if (t2 >= 0 && t2 < 0.045) 0.8 * exp(-t2 / 0.010) * sin(2 * PI * 220.0 * t2) else 0.0
-                    thud1 + thud2
-                }
-            }
-            Pattern.BOUNCE -> {
-                durationMs = 70
-                sampleGenerator = { t, _ ->
-                    val b1 = if (t < 0.025) exp(-t / 0.005) * sin(2 * PI * 1100.0 * t) else 0.0
-                    val t2 = t - 0.030
-                    val b2 = if (t2 >= 0 && t2 < 0.025) 0.7 * exp(-t2 / 0.005) * sin(2 * PI * 1450.0 * t2) else 0.0
-                    b1 + b2
-                }
-            }
-            Pattern.RADAR -> {
-                durationMs = 90
-                sampleGenerator = { t, total ->
-                    val env = exp(-t / 0.022)
-                    sin(2 * PI * 1250.0 * t) * env
-                }
-            }
-            Pattern.CONVERGE -> {
-                durationMs = 75
-                sampleGenerator = { t, total ->
-                    val f1 = 600.0 + 400.0 * (t / total)
-                    val f2 = 1400.0 - 400.0 * (t / total)
-                    val env = sin(PI * (t / total))
-                    (0.5 * sin(2 * PI * f1 * t) + 0.5 * sin(2 * PI * f2 * t)) * env
-                }
-            }
-            Pattern.GLITCH -> {
-                durationMs = 50
-                sampleGenerator = { t, _ ->
-                    var sample = 0.0
-                    val times = doubleArrayOf(0.0, 0.014, 0.028)
-                    val freqs = doubleArrayOf(1900.0, 800.0, 2600.0)
-                    for (i in times.indices) {
-                        val ti = t - times[i]
-                        if (ti >= 0 && ti < 0.008) {
-                            sample += 0.4 * exp(-ti / 0.002) * sin(2 * PI * freqs[i] * ti)
-                        }
-                    }
-                    sample
-                }
-            }
-            Pattern.BATTERY -> {
-                durationMs = 90
-                sampleGenerator = { t, total ->
-                    val f = 600.0 + 600.0 * (t / total)
-                    val env = sin(PI * (t / total))
-                    sin(2 * PI * f * t) * env
-                }
-            }
             Pattern.CUSTOM -> {
                 durationMs = 30
                 sampleGenerator = { t, _ ->
@@ -285,12 +254,6 @@ object PatternAudioPlayer {
                     val t2 = t - 0.010
                     val snap2 = if (t2 >= 0) 0.5 * exp(-t2 / 0.005) * sin(2 * PI * 850.0 * t2) else 0.0
                     snap1 + snap2
-                }
-            }
-            else -> {
-                durationMs = 30
-                sampleGenerator = { t, _ ->
-                    exp(-t / 0.006) * sin(2 * PI * 1000.0 * t)
                 }
             }
         }

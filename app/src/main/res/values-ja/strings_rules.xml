@@ -106,6 +106,10 @@
     <string name="rules_time_per_cycle">1 周期の時間</string>
     <!-- "Brightness" -->
     <string name="rules_brightness">明るさ</string>
+    <!-- "Pattern sound" -->
+    <string name="rules_pattern_sound">パターン音</string>
+    <!-- "Play subtle sound effects while this pattern is active." -->
+    <string name="rules_pattern_sound_caption">このパターンの点灯中に専用の効果音を再生します。</string>
     <!-- "Test on the LEDs" -->
     <string name="rules_test_on_leds">LED でテスト</string>
 

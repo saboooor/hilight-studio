@@ -52,6 +52,8 @@
     <string name="style_shorter_is_faster">Shorter is faster.</string>
     <string name="style_brightness">Brightness</string>
     <string name="style_brightness_note">The LEDs have no brightness channel, so this scales the RGB values.</string>
+    <string name="style_pattern_sound">Pattern sound</string>
+    <string name="style_pattern_sound_caption">Play subtle sound effects while the always-on pattern is active.</string>
 
     <!-- Slider badges that read as a percentage. The sign is doubled to survive the formatter. -->
     <string name="style_percent">%1$d%%</string>

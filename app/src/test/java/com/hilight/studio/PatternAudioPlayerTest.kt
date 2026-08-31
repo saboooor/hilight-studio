@@ -46,5 +46,14 @@ class PatternAudioPlayerTest {
             assertEquals(cached.size, PatternAudioPlayer.synthesize(pattern).size)
         }
     }
+
+    @Test
+    fun `startActive and stopActive lifecycle safely executes without crash`() {
+        PatternAudioPlayer.startActive(Pattern.PULSE, 800, 1000)
+        PatternAudioPlayer.stopActive()
+
+        PatternAudioPlayer.startActive(Pattern.OFF, 800, 1000)
+        PatternAudioPlayer.stopActive()
+    }
 }
 

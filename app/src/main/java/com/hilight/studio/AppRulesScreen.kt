@@ -245,7 +245,7 @@ fun AppRulesScreen(store: Store) {
                 store.upsertRule(it, replacing = rule)
                 editing = null
             },
-            onTest = { store.preview(it.pattern, it.color, it.speedMs, it.brightness, it.durationMs) },
+            onTest = { store.preview(it.pattern, it.color, it.speedMs, it.brightness, it.durationMs, sound = it.patternSound) },
             faceDownNoticeAccepted = faceDownNoticeAccepted,
             faceDownSensorAvailable = faceDownSensorAvailable,
             faceDownState = faceDownState,
@@ -320,7 +320,7 @@ fun AppRulesScreen(store: Store) {
                 store.upsertPrivacyRule(it, replacing = rule)
                 editingPrivacy = null
             },
-            onTest = { store.preview(it.pattern, it.color, it.speedMs, it.brightness, it.lightMs) },
+            onTest = { store.preview(it.pattern, it.color, it.speedMs, it.brightness, it.lightMs, sound = it.patternSound) },
             soundEnabled = patternSoundsEnabled,
             onToggleSound = { store.setPatternSoundsEnabled(it) },
         )
@@ -804,6 +804,11 @@ private fun RuleEditorDialog(
                     stringResource(R.string.rules_brightness), r.brightness, 0.05f..1f,
                     { r = r.copy(brightness = it) },
                 ) { stringResource(R.string.common_percent, (it * 100).toInt()) }
+
+                ToggleRow(
+                    stringResource(R.string.rules_pattern_sound), r.patternSound,
+                ) { r = r.copy(patternSound = it) }
+                Caption(stringResource(R.string.rules_pattern_sound_caption))
 
                 FilledTonalButton(onClick = { onTest(r) }, modifier = Modifier.fillMaxWidth()) {
                     ButtonLabel(stringResource(R.string.rules_test_on_leds))

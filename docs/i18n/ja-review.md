@@ -195,6 +195,8 @@ Leave Latin as-is: HiLight, Shizuku, ADB, LED, JSON, MessagingStyle, shortcutId,
 | `rules_only_screen_off` | Only when the screen is off | 画面消灯時のみ |
 | `rules_time_per_cycle` | Time per cycle | 1 周期の時間 |
 | `rules_brightness` | Brightness | 明るさ |
+| `rules_pattern_sound` | Pattern sound | パターン音 |
+| `rules_pattern_sound_caption` | Play subtle sound effects while this pattern is active. | このパターンの点灯中に専用の効果音を再生します。 |
 | `rules_test_on_leds` | Test on the LEDs | LED でテスト |
 | `rules_show_for` | Show for | 点灯時間 |
 | `rules_allow_one_minute` | Allow up to 1 minute | 最大 1 分まで許可 |
@@ -378,6 +380,8 @@ Leave Latin as-is: HiLight, Shizuku, ADB, LED, JSON, MessagingStyle, shortcutId,
 | `style_shorter_is_faster` | Shorter is faster. | 短いほど速くなります。 |
 | `style_brightness` | Brightness | 明るさ |
 | `style_brightness_note` | The LEDs have no brightness channel, so this scales the RGB values. | LED に明るさのチャンネルはないため、RGB の値を比例して調整します。 |
+| `style_pattern_sound` | Pattern sound | パターン音 |
+| `style_pattern_sound_caption` | Play subtle sound effects while the always-on pattern is active. | 常時点灯パターンの点灯中に専用の効果音を再生します。 |
 | `style_percent` | %1$d%% | %1$d%% |
 | `style_presets` | Presets | プリセット |
 | `style_presets_saved` | %1$d saved | %1$d 件保存済み |

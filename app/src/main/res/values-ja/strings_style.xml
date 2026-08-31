@@ -73,6 +73,10 @@
     <string name="style_brightness">明るさ</string>
     <!-- "The LEDs have no brightness channel, so this scales the RGB values." -->
     <string name="style_brightness_note">LED に明るさのチャンネルはないため、RGB の値を比例して調整します。</string>
+    <!-- "Pattern sound" -->
+    <string name="style_pattern_sound">パターン音</string>
+    <!-- "Play subtle sound effects while the always-on pattern is active." -->
+    <string name="style_pattern_sound_caption">常時点灯パターンの点灯中に専用の効果音を再生します。</string>
 
     <!-- Slider badges that read as a percentage. The sign is doubled to survive the formatter. -->
     <!-- "%1$d%%" -->

@@ -278,6 +278,11 @@ fun PrivacyRuleEditorDialog(
                     { edited = edited.copy(brightness = it) },
                 ) { stringResource(R.string.common_percent, (it * 100).toInt()) }
 
+                ToggleRow(
+                    stringResource(R.string.rules_pattern_sound), edited.patternSound,
+                ) { edited = edited.copy(patternSound = it) }
+                Caption(stringResource(R.string.rules_pattern_sound_caption))
+
                 Caption(stringResource(R.string.privacy_one_minute_cap))
                 FilledTonalButton(onClick = { onTest(edited) }, modifier = Modifier.fillMaxWidth()) {
                     ButtonLabel(stringResource(R.string.rules_test_on_leds))

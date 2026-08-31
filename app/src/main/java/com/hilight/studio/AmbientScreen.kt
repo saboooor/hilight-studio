@@ -234,6 +234,10 @@ fun AmbientScreen(store: Store) {
                         { store.setAmbient(ambient.copy(brightness = it)) },
                     ) { stringResource(R.string.style_percent, (it * 100).toInt()) }
                     Caption(stringResource(R.string.style_brightness_note))
+                    ToggleRow(
+                        stringResource(R.string.style_pattern_sound), ambient.patternSound,
+                    ) { store.setAmbient(ambient.copy(patternSound = it)) }
+                    Caption(stringResource(R.string.style_pattern_sound_caption))
                 }
             }
         }

@@ -99,4 +99,17 @@ class PrivacyRuleTest {
             }
         }
     }
+
+    @Test
+    fun `patternSound defaults to false and survives round trip`() {
+        val rule = PrivacyRule.default(PrivacyActivity.MICROPHONE).copy(patternSound = true)
+        val json = rule.toPrefsJson()
+        assertTrue(json.getBoolean("patternSound"))
+        val restored = PrivacyRule.fromJson(json)
+        assertTrue(restored!!.patternSound)
+
+        val defaultRule = PrivacyRule.default(PrivacyActivity.MICROPHONE)
+        assertFalse(defaultRule.patternSound)
+        assertFalse(PrivacyRule.fromJson(defaultRule.toPrefsJson())!!.patternSound)
+    }
 }

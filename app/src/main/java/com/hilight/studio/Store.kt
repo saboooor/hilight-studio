@@ -421,6 +421,7 @@ class Store private constructor(private val app: Context) {
 
     /** Package of the app whose FOREGROUND rule is currently held, if any. */
     private var foregroundOverride: Pair<String, JSONObject>? = null
+    private var foregroundRule: AppRule? = null
 
     /**
      * The notification alert still meant to be on the array, if any.
@@ -1297,6 +1298,9 @@ class Store private constructor(private val app: Context) {
             preview = null,
             source = AlertSource.NOTIFICATION,
             faceDownGated = rule.onlyWhenFaceDown,
+            sound = rule.patternSound,
+            pattern = rule.pattern,
+            speedMs = rule.speedMs,
         )
     }
 
@@ -1315,12 +1319,20 @@ class Store private constructor(private val app: Context) {
         preview: Ambient?,
         source: AlertSource,
         faceDownGated: Boolean = false,
+        sound: Boolean = false,
+        pattern: Pattern = Pattern.SOLID,
+        speedMs: Int = 800,
     ) {
         activeAlert = alert
         activeAlertSource = source
         activeAlertFaceDownGated = faceDownGated
         alertIsPreview = preview != null
         _previewLook.value = preview
+
+        if (sound && pattern != Pattern.OFF) {
+            PatternAudioPlayer.startActive(pattern, speedMs, durationMs.toLong())
+        }
+
         // A preview is a deliberate "show me this now", so it lights the array even with the master
         // switch off, which is what the Test buttons have always done. Notification alerts get here
         // only once fireAlert has confirmed the switch is on.
@@ -1336,6 +1348,7 @@ class Store private constructor(private val app: Context) {
 
     /** Drops the top layer and re-pushes whatever sits underneath it. */
     private fun releaseAlert() {
+        PatternAudioPlayer.stopActive()
         activeAlert = null
         activeAlertSource = null
         activeAlertFaceDownGated = false
@@ -1352,6 +1365,7 @@ class Store private constructor(private val app: Context) {
      */
     fun cancelAlert() {
         if (activeAlert == null) return
+        PatternAudioPlayer.stopActive()
         alertExpiry?.let { main.removeCallbacks(it) }
         alertExpiry = null
         releaseAlert()
@@ -1362,11 +1376,13 @@ class Store private constructor(private val app: Context) {
         if (pkg == null || rule == null) {
             if (foregroundOverride == null) return
             foregroundOverride = null
+            foregroundRule = null
             pushCurrent(arm = false)
             return
         }
         if (foregroundOverride?.first == pkg) return
         val color = if (rule.randomColor) randomColor() else rule.color
+        foregroundRule = rule
         foregroundOverride = pkg to Bridge.alertJson(
             id = Bridge.nextAlertId(),
             pattern = rule.pattern,
@@ -1387,7 +1403,14 @@ class Store private constructor(private val app: Context) {
     val previewLook: StateFlow<Ambient?> = _previewLook.asStateFlow()
 
     /** One-off preview used by the Test buttons. */
-    fun preview(pattern: Pattern, color: Int, speedMs: Int, brightness: Float, durationMs: Int = 4000) {
+    fun preview(
+        pattern: Pattern,
+        color: Int,
+        speedMs: Int,
+        brightness: Float,
+        durationMs: Int = 4000,
+        sound: Boolean = false,
+    ) {
         holdAlert(
             alert = Bridge.alertJson(
                 Bridge.nextAlertId(), pattern, color, durationMs, speedMs, brightness,
@@ -1397,8 +1420,12 @@ class Store private constructor(private val app: Context) {
             arm = true,                // the user asked for this one, so it may open a window
             preview = Ambient(
                 pattern = pattern, color = color, speedMs = speedMs, brightness = brightness,
+                patternSound = sound,
             ),
             source = AlertSource.PREVIEW,
+            sound = sound,
+            pattern = pattern,
+            speedMs = speedMs,
         )
     }
 
@@ -1411,6 +1438,7 @@ class Store private constructor(private val app: Context) {
      */
     fun stopPreview() {
         if (!alertIsPreview) return
+        PatternAudioPlayer.stopActive()
         alertExpiry?.let { main.removeCallbacks(it) }
         alertExpiry = null
         // clears the test immediately, and does not hand ambient a fresh window on the way out
@@ -1570,6 +1598,20 @@ class Store private constructor(private val app: Context) {
             activeAlertSource = activeAlertSource,
         )
         val rendererEnabled = enabled && blocked == null
+        if (activeAlert == null) {
+            val fg = foregroundOverride?.let { foregroundRule }
+            if (rendererEnabled) {
+                if (fg != null && fg.patternSound && fg.pattern != Pattern.OFF) {
+                    PatternAudioPlayer.startActive(fg.pattern, fg.speedMs)
+                } else if (_ambient.value.patternSound && _ambient.value.pattern != Pattern.OFF) {
+                    PatternAudioPlayer.startActive(_ambient.value.pattern, _ambient.value.speedMs)
+                } else {
+                    PatternAudioPlayer.stopActive()
+                }
+            } else {
+                PatternAudioPlayer.stopActive()
+            }
+        }
         val effectiveManualRequestId = coalescedManualCleanupRequestId(
             currentRequestId = pendingManualBlackClearRequestId,
             replacementEnabled = rendererEnabled,
