@@ -959,6 +959,18 @@ class Store private constructor(private val app: Context) {
         syncForegroundWatcher()
     }
 
+    /** All per-app rules as a JSON document, for sharing or backup. */
+    fun exportRules(): String = exportRulesDocument(_rules.value)
+
+    /** Merges per-app rules from an exported document. Returns how many were added or updated, or null if unreadable. */
+    fun importRules(raw: String): Int? {
+        val incoming = parseImportedRules(raw) ?: return null
+        _rules.value = mergeImportedRules(_rules.value, incoming)
+        saveRules()
+        syncForegroundWatcher()
+        return incoming.size
+    }
+
     fun upsertPrivacyRule(rule: PrivacyRule, replacing: PrivacyRule? = null) {
         val stale = setOfNotNull(replacing?.id, rule.id)
         val out = _privacyRules.value.filterNot { it.id in stale }.toMutableList()
@@ -3261,3 +3273,42 @@ class Store private constructor(private val app: Context) {
         }
     }
 }
+
+internal fun exportRulesDocument(rules: List<AppRule>): String = JSONObject().apply {
+    put("v", 1)
+    put("rules", JSONArray().also { a -> rules.forEach { a.put(it.toPrefsJson()) } })
+}.toString(2)
+
+internal fun parseImportedRules(raw: String): List<AppRule>? = runCatching {
+    val trimmed = raw.trim()
+    val arr = if (trimmed.startsWith("[")) {
+        JSONArray(trimmed)
+    } else {
+        JSONObject(trimmed).getJSONArray("rules")
+    }
+    val incoming = (0 until arr.length()).mapNotNull {
+        runCatching { AppRule.fromJson(arr.getJSONObject(it)) }.getOrNull()
+    }
+    if (incoming.isEmpty() && arr.length() > 0) null
+    else incoming
+}.getOrNull()
+
+internal fun mergeImportedRules(existing: List<AppRule>, incoming: List<AppRule>): List<AppRule> {
+    val incomingMap = incoming.associateBy { it.id }
+    val out = ArrayList<AppRule>(existing.size + incoming.size)
+    val seen = mutableSetOf<String>()
+    for (existingRule in existing) {
+        val rule = incomingMap[existingRule.id] ?: existingRule
+        out += rule
+        seen += rule.id
+    }
+    for (inc in incoming) {
+        if (inc.id !in seen) {
+            val rule = incomingMap[inc.id] ?: inc
+            out += rule
+            seen += rule.id
+        }
+    }
+    return out
+}
+
