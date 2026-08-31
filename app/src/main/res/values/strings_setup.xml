@@ -122,6 +122,8 @@
     <!-- Appearance -->
     <string name="setup_appearance_title">Appearance</string>
     <string name="setup_wallpaper_colours">Wallpaper colours</string>
+    <string name="setup_pattern_sounds_toggle">Pattern sound effects</string>
+    <string name="setup_pattern_sounds_caption">Play subtle sound cues when previewing and selecting patterns.</string>
 
     <!-- Manual GitHub update check -->
     <string name="setup_updates_title">Updates</string>

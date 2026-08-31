@@ -90,6 +90,7 @@ fun AppRulesScreen(store: Store) {
     val faceDownNoticeAccepted by store.faceDownNoticeAccepted.collectAsStateWithLifecycle()
     val faceDownState by store.faceDownState.collectAsStateWithLifecycle()
     val faceDownSensorAvailable = remember(ctx) { ForegroundWatcher.hasFaceDownSensor(ctx) }
+    val patternSoundsEnabled by store.patternSoundsEnabled.collectAsStateWithLifecycle()
     var picking by remember { mutableStateOf(false) }
     var scoping by remember { mutableStateOf<InstalledApp?>(null) }
     var pickingChatIn by remember { mutableStateOf<InstalledApp?>(null) }
@@ -249,6 +250,8 @@ fun AppRulesScreen(store: Store) {
             faceDownSensorAvailable = faceDownSensorAvailable,
             faceDownState = faceDownState,
             onAcceptFaceDownNotice = store::acceptFaceDownNotice,
+            soundEnabled = patternSoundsEnabled,
+            onToggleSound = { store.setPatternSoundsEnabled(it) },
             onCopy = if (editor.isNew || rule.isConversationRule) null else ({ draft ->
                 editing = null
                 copyingFrom = draft
@@ -318,6 +321,8 @@ fun AppRulesScreen(store: Store) {
                 editingPrivacy = null
             },
             onTest = { store.preview(it.pattern, it.color, it.speedMs, it.brightness, it.lightMs) },
+            soundEnabled = patternSoundsEnabled,
+            onToggleSound = { store.setPatternSoundsEnabled(it) },
         )
     }
 }
@@ -606,6 +611,8 @@ private fun RuleEditorDialog(
     faceDownSensorAvailable: Boolean,
     faceDownState: FaceDownState,
     onAcceptFaceDownNotice: () -> Unit,
+    soundEnabled: Boolean = false,
+    onToggleSound: ((Boolean) -> Unit)? = null,
     onCopy: ((AppRule) -> Unit)?,
     onAddPrivacy: (() -> Unit)?,
 ) {
@@ -691,6 +698,8 @@ private fun RuleEditorDialog(
                     selected = r.pattern,
                     options = Pattern.entries.filter { it != Pattern.OFF && it != Pattern.CUSTOM },
                     onSelect = { r = r.copy(pattern = it) },
+                    soundEnabled = soundEnabled,
+                    onToggleSound = onToggleSound,
                 )
 
                 ToggleRow(

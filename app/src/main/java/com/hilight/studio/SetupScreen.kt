@@ -155,6 +155,7 @@ fun SetupScreen(store: Store) {
     val faceDownNoticeAccepted by store.faceDownNoticeAccepted.collectAsStateWithLifecycle()
     val faceDownState by store.faceDownState.collectAsStateWithLifecycle()
     val faceDownSensorAvailable = remember(ctx) { ForegroundWatcher.hasFaceDownSensor(ctx) }
+    val patternSoundsEnabled by store.patternSoundsEnabled.collectAsStateWithLifecycle()
 
     var notifAccess by remember { mutableStateOf(hasNotificationAccess(ctx)) }
     var usageAccess by remember { mutableStateOf(ForegroundWatcher.hasUsageAccess(ctx)) }
@@ -434,6 +435,10 @@ fun SetupScreen(store: Store) {
         ToggleRow(stringResource(R.string.setup_wallpaper_colours), dynamicColor) {
             store.setDynamicColor(it)
         }
+        ToggleRow(stringResource(R.string.setup_pattern_sounds_toggle), patternSoundsEnabled) {
+            store.setPatternSoundsEnabled(it)
+        }
+        Caption(stringResource(R.string.setup_pattern_sounds_caption))
     }
 
     PixelCard {

@@ -34,6 +34,8 @@
     <string name="pattern_rainbow_short">Rainbow</string>
     <string name="pattern_random">Random colours</string>
     <string name="pattern_custom">Per-LED custom</string>
+    <string name="pattern_sounds_preview_on">Mute pattern sound preview</string>
+    <string name="pattern_sounds_preview_off">Unmute pattern sound preview</string>
 
     <!-- What one cycle of each pattern means -->
     <string name="cycle_breathe">One full breath: dim up to full, back down.</string>

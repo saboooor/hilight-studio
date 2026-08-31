@@ -25,9 +25,16 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.VolumeOff
+import androidx.compose.material.icons.automirrored.rounded.VolumeUp
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.FilledIconToggleButton
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.MaterialTheme
@@ -53,11 +60,13 @@ import androidx.compose.ui.unit.dp
 import android.widget.Toast
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
-/** The always-on look: pattern, colours, timing. */
+/** Always-on look: background pattern, colours, and the presets manager. */
 @Composable
 fun AmbientScreen(store: Store) {
     val ambient by store.ambient.collectAsStateWithLifecycle()
     val enabled by store.enabled.collectAsStateWithLifecycle()
+    val dynamicColor by store.dynamicColor.collectAsStateWithLifecycle()
+    val patternSoundsEnabled by store.patternSoundsEnabled.collectAsStateWithLifecycle()
     var editingLed by rememberSaveable { mutableIntStateOf(0) }
 
     PresetsCard(store)
@@ -69,6 +78,8 @@ fun AmbientScreen(store: Store) {
             selected = ambient.pattern,
             options = Pattern.entries,
             onSelect = { store.setAmbient(ambient.copy(pattern = it)) },
+            soundEnabled = patternSoundsEnabled,
+            onToggleSound = { store.setPatternSoundsEnabled(it) },
         )
         if (!enabled) {
             Text(
@@ -378,6 +389,8 @@ fun PatternCarousel(
     selected: Pattern,
     options: List<Pattern>,
     onSelect: (Pattern) -> Unit,
+    soundEnabled: Boolean = false,
+    onToggleSound: ((Boolean) -> Unit)? = null,
 ) {
     val haptics = LocalHapticFeedback.current
     val listState = rememberLazyListState()
@@ -388,39 +401,77 @@ fun PatternCarousel(
         if (index >= 0) listState.animateScrollToItem(index, scrollOffset = -120)
     }
 
-    LazyRow(
-        state = listState,
+    Row(
         modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        items(options, key = { it.key }) { p ->
-            val isSelected = p == selected
-            val bg by animateColorAsState(
-                if (isSelected) MaterialTheme.colorScheme.primary
-                else MaterialTheme.colorScheme.surfaceContainerHighest,
-                label = "chipBg",
-            )
-            val fg by animateColorAsState(
-                if (isSelected) MaterialTheme.colorScheme.onPrimary
-                else MaterialTheme.colorScheme.onSurfaceVariant,
-                label = "chipFg",
-            )
-            val scale by animateFloatAsState(
-                if (isSelected) 1.04f else 1f,
-                spring(dampingRatio = 0.4f, stiffness = Spring.StiffnessMedium),
-                label = "chipScale",
-            )
-            Box(
-                Modifier
-                    .scale(scale)
-                    .background(bg, CircleShape)
-                    .clickable {
-                        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                        onSelect(p)
+        LazyRow(
+            state = listState,
+            modifier = Modifier.weight(1f),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            items(options, key = { it.key }) { p ->
+                val isSelected = p == selected
+                val bg by animateColorAsState(
+                    if (isSelected) MaterialTheme.colorScheme.primary
+                    else MaterialTheme.colorScheme.surfaceContainerHighest,
+                    label = "chipBg",
+                )
+                val fg by animateColorAsState(
+                    if (isSelected) MaterialTheme.colorScheme.onPrimary
+                    else MaterialTheme.colorScheme.onSurfaceVariant,
+                    label = "chipFg",
+                )
+                val scale by animateFloatAsState(
+                    if (isSelected) 1.04f else 1f,
+                    spring(dampingRatio = 0.4f, stiffness = Spring.StiffnessMedium),
+                    label = "chipScale",
+                )
+                Box(
+                    Modifier
+                        .scale(scale)
+                        .background(bg, CircleShape)
+                        .clickable {
+                            haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                            if (soundEnabled) {
+                                PatternAudioPlayer.play(p)
+                            }
+                            onSelect(p)
+                        }
+                        .padding(horizontal = 18.dp, vertical = 11.dp),
+                ) {
+                    Text(stringResource(p.labelRes), style = MaterialTheme.typography.labelLarge, color = fg)
+                }
+            }
+        }
+
+        if (onToggleSound != null) {
+            FilledIconToggleButton(
+                checked = soundEnabled,
+                onCheckedChange = {
+                    onToggleSound(it)
+                    if (it) {
+                        PatternAudioPlayer.play(selected)
                     }
-                    .padding(horizontal = 18.dp, vertical = 11.dp),
+                },
+                modifier = Modifier.size(40.dp),
+                colors = IconButtonDefaults.filledIconToggleButtonColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                    checkedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    checkedContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                ),
             ) {
-                Text(stringResource(p.labelRes), style = MaterialTheme.typography.labelLarge, color = fg)
+                Icon(
+                    if (soundEnabled) Icons.AutoMirrored.Rounded.VolumeUp
+                    else Icons.AutoMirrored.Rounded.VolumeOff,
+                    contentDescription = stringResource(
+                        if (soundEnabled) R.string.pattern_sounds_preview_on
+                        else R.string.pattern_sounds_preview_off,
+                    ),
+                    modifier = Modifier.size(20.dp),
+                )
             }
         }
     }
