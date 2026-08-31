@@ -20,6 +20,13 @@
     <string name="rules_intro_apps">Choose an app, then what HiLight does when it notifies you — or while it is open.</string>
     <string name="rules_intro_messaging">Messaging apps go one step further: a colour for a single contact or chat.</string>
     <string name="rules_add">Add app rule</string>
+    <string name="rules_export">Export</string>
+    <string name="rules_import">Import</string>
+    <string name="rules_export_chooser">Export app rules</string>
+    <string name="rules_paste_exported">Paste exported rules</string>
+    <string name="rules_import_json_field">JSON</string>
+    <string name="rules_import_failed">That JSON could not be read</string>
+    <string name="rules_import_count">Imported %1$d</string>
 
     <!-- One rule card. The summary line is "pattern · when it fires": %1$s is a pattern name from
          strings_common.xml or rules_random_colour, %2$s one of the two trigger phrases below. Those
